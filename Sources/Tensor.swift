@@ -32,11 +32,11 @@ public struct Tensor<ItemType> {
     public private(set) var itemCountPerElement: Int
 
     /// Contiguous storage
-    public var items: ArraySlice<ItemType>
+    fileprivate var _items: ArraySlice<ItemType>
 
     /// Capacity reserved for sub-tensors
     public var capacity: Int {
-        return items.capacity / itemCountPerElement
+        return _items.capacity / itemCountPerElement
     }
 
     fileprivate init(elementShape: TensorShape?, items: ArraySlice<ItemType>) {
@@ -45,7 +45,7 @@ public struct Tensor<ItemType> {
                      "Item count does not match element shape")
         self.itemCountPerElement = elementShape == nil ? 0 : elementContiguousSize
         self.elementShape = elementShape
-        self.items = items
+        self._items = items
     }
 
     /// Initialize a tensor using an existing slice of elements in row-major order
@@ -137,11 +137,11 @@ public struct Tensor<ItemType> {
 public extension Tensor where ItemType : Equatable {
 
     public func elementsEqual(_ other: Tensor<ItemType>) -> Bool {
-        return shape.elementsEqual(other.shape) && items.elementsEqual(other.items)
+        return shape.elementsEqual(other.shape) && _items.elementsEqual(other._items)
     }
 
     public func itemsEqual(_ other: Tensor<ItemType>) -> Bool {
-        return items.elementsEqual(other.items)
+        return _items.elementsEqual(other._items)
     }
 
 }
@@ -185,29 +185,90 @@ extension Tensor where ItemType : Strideable, ItemType.Stride : SignedInteger {
 
 }
 
+// MARK: - Item mutation
+public extension Tensor {
+
+    var itemCount: Int {
+        return _items.count
+    }
+
+    var items: AnyRandomAccessCollection<ItemType> {
+        return AnyRandomAccessCollection(_items)
+    }
+
+    func makeItemIterator() -> IndexingIterator<ArraySlice<ItemType>> {
+        return _items.makeIterator()
+    }
+
+    func item(at index: Int) -> ItemType {
+        return _items[_items.startIndex.advanced(by: index)]
+    }
+
+    mutating func updateItem(_ newValue: ItemType, at index: Int) {
+        _items[_items.startIndex.advanced(by: index)] = newValue
+    }
+
+}
+
+public extension Tensor where ItemType : IntegerArithmetic {
+
+    mutating func incrementItem(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] += newValue
+    }
+
+    mutating func decrementItem(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] -= newValue
+    }
+
+    mutating func multiply(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] *= newValue
+    }
+
+    mutating func divide(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] /= newValue
+    }
+
+}
+
+public extension Tensor where ItemType : FloatingPoint {
+
+    mutating func incrementItem(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] += newValue
+    }
+
+    mutating func decrementItem(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] -= newValue
+    }
+
+    mutating func multiply(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] *= newValue
+    }
+
+    mutating func divide(at index: Int, by newValue: ItemType) {
+        _items[_items.startIndex.advanced(by: index)] /= newValue
+    }
+
+}
+
 // MARK: - RangeReplaceableCollection
 extension Tensor : RangeReplaceableCollection {
-
-    public var itemCount: Int {
-        return items.count
-    }
 
     public mutating func append(_ newElement: Tensor<ItemType>) {
         precondition(newElement.shape == elementShape, "Element shape mismatch")
         reserveCapacity(count + 1)
-        items.append(contentsOf: newElement.items)
+        _items.append(contentsOf: newElement._items)
     }
 
     public mutating func reserveCapacity(_ minimumCapacity: Int) {
-        let cap = Swift.max(items.capacity, itemCountPerElement * minimumCapacity)
-        items.reserveCapacity(cap)
+        let cap = Swift.max(_items.capacity, itemCountPerElement * minimumCapacity)
+        _items.reserveCapacity(cap)
     }
 
     @discardableResult
     public mutating func remove(at index: Int) -> Tensor<ItemType> {
         precondition(indices.contains(index), "Index out of range")
         let range: Range = itemSubrange(fromSubrange: index..<index+1)
-        defer { items.removeSubrange(range) }
+        defer { _items.removeSubrange(range) }
         return self[range]
     }
 
@@ -229,13 +290,13 @@ extension Tensor : RangeReplaceableCollection {
     public mutating func append(contentsOf newElements: Tensor<ItemType>) {
         precondition(newElements.elementShape == elementShape, "Element shape mismatch")
         reserveCapacity(count + newElements.count)
-        items.append(contentsOf: newElements.items)
+        _items.append(contentsOf: newElements._items)
     }
 
     public mutating func replaceSubrange<C : Collection>
         (_ subrange: Range<Int>, with newElements: C) where C.Iterator.Element == Tensor<ItemType> {
         let storageSubrange = itemSubrange(fromSubrange: subrange)
-        items.replaceSubrange(storageSubrange, with: Tensor(newElements).items)
+        _items.replaceSubrange(storageSubrange, with: Tensor(newElements)._items)
     }
 
     public subscript(bounds: Range<Int>) -> Tensor<ItemType> {
@@ -244,14 +305,14 @@ extension Tensor : RangeReplaceableCollection {
                 preconditionFailure("I am a scalar and I have no dimensions!")
             }
             return Tensor(shape: elementShape.prepending(bounds.count),
-                          items: items[itemSubrange(fromSubrange: bounds)])
+                          items: _items[itemSubrange(fromSubrange: bounds)])
         }
         set {
             guard let elementShape = elementShape else {
                 preconditionFailure("I am a scalar and I have no dimensions!")
             }
             precondition(newValue.shape == elementShape, "Element shape mismatch")
-            items[itemSubrange(fromSubrange: bounds)] = newValue.items
+            _items[itemSubrange(fromSubrange: bounds)] = newValue._items
         }
     }
     
@@ -269,14 +330,14 @@ extension Tensor : RandomAccessCollection {
             let newShape = shape.dropFirst(index.count)
             let contiguousIndex = index.contiguousIndex(in: shape)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return Tensor(shape: newShape, items: items[range])
+            return Tensor(shape: newShape, items: _items[range])
         }
         set {
             precondition(!(isScalar && !index.isEmpty), "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst(index.count)
             let contiguousIndex = index.contiguousIndex(in: shape)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            items[range] = newValue.items
+            _items[range] = newValue._items
         }
     }
 
@@ -303,7 +364,7 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var count: Int {
-        return isScalar ? 0 : items.count / itemCountPerElement
+        return isScalar ? 0 : _items.count / itemCountPerElement
     }
 
     /// Returns a sequence of tensor indices for scalar elements
@@ -354,7 +415,7 @@ public extension Tensor {
         guard self.shape.contiguousSize == newShape.contiguousSize else {
             return nil
         }
-        return Tensor(shape: newShape, items: items)
+        return Tensor(shape: newShape, items: _items)
     }
     
 }
@@ -364,14 +425,14 @@ public extension Tensor {
 
     func withUnsafeBufferPointer<Result>
         (_ body: (UnsafeBufferPointer<ItemType>) throws -> Result) rethrows -> Result {
-        return try items.withUnsafeBufferPointer { ptr in
+        return try _items.withUnsafeBufferPointer { ptr in
             try body(ptr)
         }
     }
 
     mutating func withUnsafeMutableBufferPointer<Result>
         (_ body: (inout UnsafeMutableBufferPointer<ItemType>) throws -> Result) rethrows -> Result {
-        return try items.withUnsafeMutableBufferPointer { ptr in
+        return try _items.withUnsafeMutableBufferPointer { ptr in
             try body(&ptr)
         }
     }
