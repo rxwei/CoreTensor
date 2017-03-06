@@ -204,7 +204,7 @@ public extension Tensor {
         return _items[_items.startIndex.advanced(by: index)]
     }
 
-    mutating func updateItem(_ newValue: ItemType, at index: Int) {
+    mutating func updateItem(at index: Int, to newValue: ItemType) {
         _items[_items.startIndex.advanced(by: index)] = newValue
     }
 
@@ -220,11 +220,11 @@ public extension Tensor where ItemType : IntegerArithmetic {
         _items[_items.startIndex.advanced(by: index)] -= newValue
     }
 
-    mutating func multiply(at index: Int, by newValue: ItemType) {
+    mutating func multiplyItem(at index: Int, by newValue: ItemType) {
         _items[_items.startIndex.advanced(by: index)] *= newValue
     }
 
-    mutating func divide(at index: Int, by newValue: ItemType) {
+    mutating func divideItem(at index: Int, by newValue: ItemType) {
         _items[_items.startIndex.advanced(by: index)] /= newValue
     }
 
@@ -240,11 +240,11 @@ public extension Tensor where ItemType : FloatingPoint {
         _items[_items.startIndex.advanced(by: index)] -= newValue
     }
 
-    mutating func multiply(at index: Int, by newValue: ItemType) {
+    mutating func multiplyItem(at index: Int, by newValue: ItemType) {
         _items[_items.startIndex.advanced(by: index)] *= newValue
     }
 
-    mutating func divide(at index: Int, by newValue: ItemType) {
+    mutating func divideItem(at index: Int, by newValue: ItemType) {
         _items[_items.startIndex.advanced(by: index)] /= newValue
     }
 
