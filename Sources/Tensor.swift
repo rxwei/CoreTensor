@@ -32,7 +32,7 @@ public struct Tensor<ItemType> {
     public private(set) var itemCountPerElement: Int
 
     /// Contiguous storage
-    public internal(set) var items: ArraySlice<ItemType>
+    public var items: ArraySlice<ItemType>
 
     /// Capacity reserved for sub-tensors
     public var capacity: Int {
