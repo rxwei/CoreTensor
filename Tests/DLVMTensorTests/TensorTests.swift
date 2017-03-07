@@ -7,6 +7,7 @@
 //
 
 import XCTest
+@testable import DLVMTensor
 
 class DLVMTensorTests: XCTestCase {
 
@@ -44,10 +45,10 @@ class DLVMTensorTests: XCTestCase {
                                               itemsIncreasingFrom: 0))
         tensor.append(contentsOf: Tensor<Int>(shape: [3, 4, 3],
                                               itemsIncreasingFrom: 0))
-        XCTAssertEqual(tensor.items, ArraySlice((0..<24).map{$0} + (0..<36).map{$0}))
+        XCTAssertEqual(tensor.items, ContiguousArray((0..<24).map{$0} + (0..<36).map{$0}))
 
         let scalars = Tensor<Int>(scalarElementsIn: 0..<10)
-        XCTAssertEqual(scalars.items, ArraySlice((0..<10).map{$0}))
+        XCTAssertEqual(scalars.items, ContiguousArray((0..<10).map{$0}))
         for (i, scalar) in scalars.enumerated() {
             XCTAssertEqual(scalar.itemCount, 1)
             XCTAssertEqual(scalar.items.first, i)
@@ -67,9 +68,9 @@ class DLVMTensorTests: XCTestCase {
         let scalar = Tensor<Int>(shape: [], items: [1])
         let highScalar = Tensor<Int>(shape: [1, 1, 1], items: [100])
         XCTAssertTrue(highScalar.isSimilar(to: scalar))
-        XCTAssertTrue(highScalar[0].isSimilar(to: scalar))
+        XCTAssertTrue(highScalar[0].shape ~ .scalar)
         XCTAssertFalse(highScalar.isIsomorphic(to: scalar))
-        XCTAssertFalse(highScalar[0].isIsomorphic(to: scalar))
+        XCTAssertTrue(highScalar[0].shape ~ .scalar)
     }
 
     static var allTests : [(String, (DLVMTensorTests) -> () throws -> Void)] {

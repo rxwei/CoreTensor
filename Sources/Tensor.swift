@@ -6,8 +6,41 @@
 //
 //
 
+public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollection {
+    associatedtype ItemType
+    var items: ContiguousArray<ItemType> { get }
+    var itemCountPerElement: IndexDistance { get }
+    var elementShape: TensorShape? { get }
+}
+
+public extension TensorProtocol where IndexDistance == Int {
+    /// Tensor shape
+    var shape: TensorShape {
+        return elementShape?.prepending(count) ?? .scalar
+    }
+
+    var itemCount: Int {
+        return items.count
+    }
+
+    func item(at index: Int) -> ItemType {
+        return items[items.startIndex.advanced(by: index)]
+    }
+}
+
+internal extension TensorProtocol where IndexDistance == Int {
+    func itemIndex(fromIndex index: Int) -> Int {
+        return itemCountPerElement * index
+    }
+
+    func itemSubrange(from tensorSubrange: Range<Int>) -> Range<Int> {
+        return itemIndex(fromIndex: tensorSubrange.lowerBound)
+           ..< itemIndex(fromIndex: tensorSubrange.upperBound)
+    }
+}
+
 /// Tensor
-public struct Tensor<ItemType> {
+public struct Tensor<ItemType> : TensorProtocol {
 
     /// Sub-tensor (element) shape
     public internal(set) var elementShape: TensorShape? {
@@ -20,11 +53,6 @@ public struct Tensor<ItemType> {
         return elementShape == nil
     }
 
-    /// Tensor shape
-    public var shape: TensorShape {
-        return elementShape?.prepending(count) ?? .scalar
-    }
-
     /// The number of items (atoms) per element (sub-tensor).
     /// - Note: This holds the same value as the computed property
     /// `shape.contiguousSize`, which is extremely frequently used.
@@ -32,11 +60,11 @@ public struct Tensor<ItemType> {
     public private(set) var itemCountPerElement: Int
 
     /// Contiguous storage
-    fileprivate var _items: ArraySlice<ItemType>
+    public fileprivate(set) var items: ContiguousArray<ItemType>
 
     /// Capacity reserved for sub-tensors
     public var capacity: Int {
-        return _items.capacity / itemCountPerElement
+        return items.capacity / itemCountPerElement
     }
 
     fileprivate init(elementShape: TensorShape?, items: ArraySlice<ItemType>) {
@@ -45,13 +73,13 @@ public struct Tensor<ItemType> {
                      "Item count does not match element shape")
         self.itemCountPerElement = elementShape == nil ? 0 : elementContiguousSize
         self.elementShape = elementShape
-        self._items = items
+        self.items = ContiguousArray(items)
     }
 
     /// Initialize a tensor using an existing slice of elements in row-major order
     /// - parameter shape: tensor shape
     /// - parameter elements: slice of existing elements in row-major order
-    fileprivate init(shape: TensorShape, items: ArraySlice<ItemType>) {
+    fileprivate init(shape: TensorShape, items: ContiguousArray<ItemType>) {
         precondition(items.count >= shape.contiguousSize,
                      "The slice has fewer elements than required by the shape")
         self.init(elementShape: shape.isScalar ? nil : shape.dropFirst(),
@@ -96,7 +124,7 @@ public struct Tensor<ItemType> {
         where S.Iterator.Element == ItemType, S.SubSequence : Sequence,
               S.SubSequence.Iterator.Element == ItemType {
         let contiguousSize = shape.contiguousSize
-        var slice = ArraySlice(items.prefix(contiguousSize))
+        var slice = ContiguousArray(items.prefix(contiguousSize))
         /// If elements fewer than required by the shape and supplier is provided
         /// generate new elements using the supplier until vacancy is filled
         if slice.count < contiguousSize, let supplier = supplier {
@@ -110,7 +138,7 @@ public struct Tensor<ItemType> {
     /// - parameter shape: tensor shape
     /// - parameter repeating: repeated value
     public init(shape: TensorShape, repeating repeatedValue: ItemType) {
-        let items = ArraySlice(repeating: repeatedValue, count: shape.contiguousSize)
+        let items = ContiguousArray(repeating: repeatedValue, count: shape.contiguousSize)
         self.init(shape: shape, items: items)
     }
 
@@ -118,17 +146,8 @@ public struct Tensor<ItemType> {
     /// - parameter shape: tensor shape
     /// - parameter supplier: factory function providing values lazily
     public init(shape: TensorShape, supplier: () -> ItemType) {
-        let items = ArraySlice((0..<shape.contiguousSize).map { _ in supplier() })
+        let items = ContiguousArray((0..<shape.contiguousSize).map { _ in supplier() })
         self.init(shape: shape, items: items)
-    }
-
-    internal func itemIndex(fromIndex index: Int) -> Int {
-        return itemCountPerElement * index
-    }
-
-    internal func itemSubrange(fromSubrange tensorSubrange: Range<Int>) -> Range<Int> {
-        return itemIndex(fromIndex: tensorSubrange.lowerBound)
-           ..< itemIndex(fromIndex: tensorSubrange.upperBound)
     }
     
 }
@@ -137,23 +156,23 @@ public struct Tensor<ItemType> {
 public extension Tensor where ItemType : Equatable {
 
     public func elementsEqual(_ other: Tensor<ItemType>) -> Bool {
-        return shape.elementsEqual(other.shape) && _items.elementsEqual(other._items)
+        return shape.elementsEqual(other.shape) && items.elementsEqual(other.items)
     }
 
     public func itemsEqual(_ other: Tensor<ItemType>) -> Bool {
-        return _items.elementsEqual(other._items)
+        return items.elementsEqual(other.items)
     }
 
 }
 
 // MARK: - Isomorphism
-public extension Tensor {
+public extension TensorProtocol where IndexDistance == Int {
 
-    public func isSimilar(to other: Tensor<ItemType>) -> Bool {
+    public func isSimilar(to other: Self) -> Bool {
         return shape ~ other.shape
     }
 
-    public func isIsomorphic(to other: Tensor<ItemType>) -> Bool {
+    public func isIsomorphic(to other: Self) -> Bool {
         return shape == other.shape
     }
 
@@ -188,88 +207,86 @@ extension Tensor where ItemType : Strideable, ItemType.Stride : SignedInteger {
 // MARK: - Item mutation
 public extension Tensor {
 
-    var itemCount: Int {
-        return _items.count
-    }
-
-    var items: AnyRandomAccessCollection<ItemType> {
-        return AnyRandomAccessCollection(_items)
-    }
-
-    func makeItemIterator() -> IndexingIterator<ArraySlice<ItemType>> {
-        return _items.makeIterator()
-    }
-
-    func item(at index: Int) -> ItemType {
-        return _items[_items.startIndex.advanced(by: index)]
+    func makeItemIterator() -> IndexingIterator<ContiguousArray<ItemType>> {
+        return items.makeIterator()
     }
 
     mutating func updateItem(at index: Int, to newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] = newValue
+        items[items.startIndex.advanced(by: index)] = newValue
     }
 
 }
 
+// MARK: - IntegerArithmetic
 public extension Tensor where ItemType : IntegerArithmetic {
 
     mutating func incrementItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] += newValue
+        items[items.startIndex.advanced(by: index)] += newValue
     }
 
     mutating func decrementItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] -= newValue
+        items[items.startIndex.advanced(by: index)] -= newValue
     }
 
     mutating func multiplyItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] *= newValue
+        items[items.startIndex.advanced(by: index)] *= newValue
     }
 
     mutating func divideItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] /= newValue
+        items[items.startIndex.advanced(by: index)] /= newValue
     }
 
 }
 
+// MARK: - FloatingPoint
 public extension Tensor where ItemType : FloatingPoint {
 
     mutating func incrementItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] += newValue
+        items[items.startIndex.advanced(by: index)] += newValue
     }
 
     mutating func decrementItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] -= newValue
+        items[items.startIndex.advanced(by: index)] -= newValue
     }
 
     mutating func multiplyItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] *= newValue
+        items[items.startIndex.advanced(by: index)] *= newValue
     }
 
     mutating func divideItem(at index: Int, by newValue: ItemType) {
-        _items[_items.startIndex.advanced(by: index)] /= newValue
+        items[items.startIndex.advanced(by: index)] /= newValue
     }
 
+}
+
+internal extension RangeReplaceableRandomAccessSlice {
+    var baseRange: Range<Base.Index> {
+        return startIndex..<endIndex
+    }
 }
 
 // MARK: - RangeReplaceableCollection
 extension Tensor : RangeReplaceableCollection {
 
+    public typealias SubSequence = RangeReplaceableRandomAccessSlice<Tensor<ItemType>>
+
     public mutating func append(_ newElement: Tensor<ItemType>) {
         precondition(newElement.shape == elementShape, "Element shape mismatch")
         reserveCapacity(count + 1)
-        _items.append(contentsOf: newElement._items)
+        items.append(contentsOf: newElement.items)
     }
 
     public mutating func reserveCapacity(_ minimumCapacity: Int) {
-        let cap = Swift.max(_items.capacity, itemCountPerElement * minimumCapacity)
-        _items.reserveCapacity(cap)
+        let cap = Swift.max(items.capacity, itemCountPerElement * minimumCapacity)
+        items.reserveCapacity(cap)
     }
 
     @discardableResult
     public mutating func remove(at index: Int) -> Tensor<ItemType> {
         precondition(indices.contains(index), "Index out of range")
-        let range: Range = itemSubrange(fromSubrange: index..<index+1)
-        defer { _items.removeSubrange(range) }
-        return self[range]
+        let range = itemSubrange(from: index..<index+1)
+        defer { items.removeSubrange(range) }
+        return Tensor(self[range])
     }
 
     public mutating func append<S : Sequence>(contentsOf newElements: S)
@@ -290,29 +307,32 @@ extension Tensor : RangeReplaceableCollection {
     public mutating func append(contentsOf newElements: Tensor<ItemType>) {
         precondition(newElements.elementShape == elementShape, "Element shape mismatch")
         reserveCapacity(count + newElements.count)
-        _items.append(contentsOf: newElements._items)
+        items.append(contentsOf: newElements.items)
     }
 
     public mutating func replaceSubrange<C : Collection>
         (_ subrange: Range<Int>, with newElements: C) where C.Iterator.Element == Tensor<ItemType> {
-        let storageSubrange = itemSubrange(fromSubrange: subrange)
-        _items.replaceSubrange(storageSubrange, with: Tensor(newElements)._items)
+        let range = itemSubrange(from: subrange)
+        let elemShape = elementShape
+        items.replaceSubrange(range, with: newElements.lazy.flatMap { elem -> ContiguousArray<ItemType> in
+            precondition(elemShape == elem.shape, "Element shape mismatch")
+            return elem.items
+        })
     }
 
-    public subscript(bounds: Range<Int>) -> Tensor<ItemType> {
+    public subscript(bounds: Range<Int>) -> RangeReplaceableRandomAccessSlice<Tensor<ItemType>> {
         get {
-            guard let elementShape = elementShape else {
-                preconditionFailure("I am a scalar and I have no dimensions!")
-            }
-            return Tensor(shape: elementShape.prepending(bounds.count),
-                          items: _items[itemSubrange(fromSubrange: bounds)])
+            precondition(isScalar,
+                         "I am a scalar and I have no dimensions!")
+            return RangeReplaceableRandomAccessSlice(base: self, bounds: bounds)
         }
         set {
-            guard let elementShape = elementShape else {
-                preconditionFailure("I am a scalar and I have no dimensions!")
-            }
-            precondition(newValue.shape == elementShape, "Element shape mismatch")
-            _items[itemSubrange(fromSubrange: bounds)] = newValue._items
+            precondition(isScalar,
+                         "I am a scalar and I have no dimensions!")
+            precondition(newValue.base.elementShape == elementShape,
+                         "Element shape mismatch")
+            items[itemSubrange(from: bounds)] =
+                newValue.base.items[newValue.base.itemSubrange(from: newValue.baseRange)]
         }
     }
     
@@ -321,23 +341,22 @@ extension Tensor : RangeReplaceableCollection {
 // MARK: - RandomAccessCollection
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
-    public typealias SubSequence = Tensor<ItemType>
 
     /// Access a sub-tensor at index
     public subscript(index: TensorIndex) -> Tensor<ItemType> {
         get {
-            precondition(!(isScalar && !index.isEmpty), "I am a scalar and I have no dimensions!")
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst(index.count)
             let contiguousIndex = index.contiguousIndex(in: shape)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return Tensor(shape: newShape, items: _items[range])
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize as Range
+            return Tensor(shape: newShape, items: items[range])
         }
         set {
-            precondition(!(isScalar && !index.isEmpty), "I am a scalar and I have no dimensions!")
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst(index.count)
             let contiguousIndex = index.contiguousIndex(in: shape)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            _items[range] = newValue._items
+            items[range] = ArraySlice(newValue.items)
         }
     }
 
@@ -364,7 +383,7 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var count: Int {
-        return isScalar ? 0 : _items.count / itemCountPerElement
+        return isScalar ? 0 : items.count / itemCountPerElement
     }
 
     /// Returns a sequence of tensor indices for scalar elements
@@ -408,6 +427,24 @@ extension Tensor : RandomAccessCollection {
 
 }
 
+// MARK: - Accessors for tensor slice
+public extension RangeReplaceableRandomAccessSlice
+    where Base : TensorProtocol, Base.Index == Int, IndexDistance == Int
+{
+//    public var shape: TensorShape {
+//        return 
+//    }
+
+    public var items: ArraySlice<Base.ItemType> {
+        return base.items[base.itemSubrange(from: baseRange)]
+    }
+
+    var itemCount: Int {
+        return count * base.itemCountPerElement
+    }
+
+}
+
 // MARK: - Reshaping
 public extension Tensor {
 
@@ -415,7 +452,7 @@ public extension Tensor {
         guard self.shape.contiguousSize == newShape.contiguousSize else {
             return nil
         }
-        return Tensor(shape: newShape, items: _items)
+        return Tensor(shape: newShape, items: items)
     }
     
 }
@@ -425,14 +462,14 @@ public extension Tensor {
 
     func withUnsafeBufferPointer<Result>
         (_ body: (UnsafeBufferPointer<ItemType>) throws -> Result) rethrows -> Result {
-        return try _items.withUnsafeBufferPointer { ptr in
+        return try items.withUnsafeBufferPointer { ptr in
             try body(ptr)
         }
     }
 
     mutating func withUnsafeMutableBufferPointer<Result>
         (_ body: (inout UnsafeMutableBufferPointer<ItemType>) throws -> Result) rethrows -> Result {
-        return try _items.withUnsafeMutableBufferPointer { ptr in
+        return try items.withUnsafeMutableBufferPointer { ptr in
             try body(&ptr)
         }
     }
