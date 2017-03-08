@@ -23,7 +23,6 @@ public struct TensorShape : ExpressibleByArrayLiteral {
     /// is the length of the parameter list.
     /// - parameter dimensions: sizes of dimensions
     public init<C: Collection>(_ dimensions: C) where C.Iterator.Element == Int {
-        precondition(!dimensions.contains(0), "Dimension element is zero")
         self.dimensions = Array(dimensions)
     }
 

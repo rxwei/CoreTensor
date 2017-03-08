@@ -11,6 +11,8 @@ public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollect
     var items: ContiguousArray<ItemType> { get }
     var itemCountPerElement: IndexDistance { get }
     var elementShape: TensorShape? { get }
+    subscript(index: Index) -> Self { get }
+    subscript(index: TensorIndex) -> Self { get }
 }
 
 public extension TensorProtocol where IndexDistance == Int {
@@ -25,6 +27,10 @@ public extension TensorProtocol where IndexDistance == Int {
 
     func item(at index: Int) -> ItemType {
         return items[items.startIndex.advanced(by: index)]
+    }
+
+    func item(at index: TensorIndex) -> ItemType {
+        return self[index].items[0]
     }
 }
 
@@ -67,7 +73,7 @@ public struct Tensor<ItemType> : TensorProtocol {
         return items.capacity / itemCountPerElement
     }
 
-    fileprivate init(elementShape: TensorShape?, items: ArraySlice<ItemType>) {
+    fileprivate init(elementShape: TensorShape?, items: ContiguousArray<ItemType>) {
         let elementContiguousSize = elementShape?.contiguousSize ?? 1
         precondition(items.count % elementContiguousSize == 0,
                      "Item count does not match element shape")
@@ -83,7 +89,7 @@ public struct Tensor<ItemType> : TensorProtocol {
         precondition(items.count >= shape.contiguousSize,
                      "The slice has fewer elements than required by the shape")
         self.init(elementShape: shape.isScalar ? nil : shape.dropFirst(),
-                  items: items.prefix(shape.contiguousSize))
+                  items: ContiguousArray(items.prefix(shape.contiguousSize)))
     }
 
     /// Initialize an empty tensor of scalar elements
@@ -152,10 +158,24 @@ public struct Tensor<ItemType> : TensorProtocol {
     
 }
 
+// MARK: - Array literal conversion
+extension Tensor : ExpressibleByArrayLiteral {
+    public typealias Element = ItemType
+    
+    public init(arrayLiteral elements: ItemType...) {
+        self.init(elementShape: .scalar, items: ContiguousArray(elements))
+    }
+}
+
 // MARK: - Element equality and item equality
 public extension Tensor where ItemType : Equatable {
 
+    public static func ==(lhs: Tensor<ItemType>, rhs: Tensor<ItemType>) -> Bool {
+        return lhs.elementsEqual(rhs)
+    }
+
     public func elementsEqual(_ other: Tensor<ItemType>) -> Bool {
+        guard shape == other.shape else { return false }
         return shape.elementsEqual(other.shape) && items.elementsEqual(other.items)
     }
 
@@ -195,11 +215,11 @@ extension Tensor where ItemType : Strideable {
 extension Tensor where ItemType : Strideable, ItemType.Stride : SignedInteger {
 
     public init(scalarElementsIn bounds: CountableRange<ItemType>) {
-        self.init(elementShape: .scalar, items: ArraySlice(bounds))
+        self.init(elementShape: .scalar, items: ContiguousArray(bounds))
     }
 
     public init(scalarElementsIn bounds: CountableClosedRange<ItemType>) {
-        self.init(elementShape: .scalar, items: ArraySlice(bounds))
+        self.init(elementShape: .scalar, items: ContiguousArray(bounds))
     }
 
 }
@@ -354,9 +374,10 @@ extension Tensor : RandomAccessCollection {
         set {
             precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst(index.count)
+            precondition(newShape == newValue.shape, "Shape mismatch")
             let contiguousIndex = index.contiguousIndex(in: shape)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            items[range] = ArraySlice(newValue.items)
+            items.replaceSubrange(range, with: newValue.items)
         }
     }
 
@@ -375,10 +396,18 @@ extension Tensor : RandomAccessCollection {
     /// Access a sub-tensor at the current dimension at index
     public subscript(index: Int) -> Tensor<ItemType> {
         get {
-            return self[[index]]
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst()
+            let contiguousIndex = itemIndex(fromIndex: index)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            return Tensor(shape: newShape, items: items[range])
         }
         set {
-            self[[index]] = newValue
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst()
+            let contiguousIndex = itemIndex(fromIndex: index)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            items.replaceSubrange(range, with: newValue.items)
         }
     }
 
@@ -409,31 +438,15 @@ extension Tensor : RandomAccessCollection {
         return i - 1
     }
 
-    /// Returns the index after the specified one in the last dimension
-    public func index(after i: TensorIndex) -> TensorIndex {
-        guard !i.isEmpty else { return i }
-        var newIndex = i
-        newIndex[newIndex.endIndex-1] += 1
-        return newIndex
-    }
-
-    /// Returns the index before the specified one in the last dimension
-    public func index(before i: TensorIndex) -> TensorIndex {
-        guard !i.isEmpty else { return i }
-        var newIndex = i
-        newIndex[newIndex.endIndex-1] -= 1
-        return newIndex
-    }
-
 }
 
 // MARK: - Accessors for tensor slice
 public extension RangeReplaceableRandomAccessSlice
     where Base : TensorProtocol, Base.Index == Int, IndexDistance == Int
 {
-//    public var shape: TensorShape {
-//        return 
-//    }
+    public var shape: TensorShape {
+        return base.elementShape?.prepending(count) ?? .scalar
+    }
 
     public var items: ArraySlice<Base.ItemType> {
         return base.items[base.itemSubrange(from: baseRange)]
@@ -474,4 +487,14 @@ public extension Tensor {
         }
     }
     
+}
+
+// MARK: - Textual description
+extension Tensor : TextOutputStreamable {
+    public func write<Target>(to target: inout Target) where Target : TextOutputStream {
+        target.write(
+            isScalar ? String(describing: items[0])
+                     : "[\(map{"\($0)"}.joined(separator: ", "))]"
+        )
+    }
 }

@@ -73,8 +73,45 @@ class DLVMTensorTests: XCTestCase {
         XCTAssertTrue(highScalar[0].shape ~ .scalar)
     }
 
+    func testTextOutput() {
+        let rank1: Tensor<Int> = [1, 2, 3, 4, 5]
+        let rank2 = Tensor<Int>(shape: [2, 3], items: [1, 2, 3,
+                                                       4, 5, 6])
+        let rank3 = Tensor<Int>(shape: [2, 3, 2], items: [1, 2,  3, 4,   5, 6,
+                                                          7, 8,  9, 10,  11, 12])
+        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
+        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
+        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
+    }
+
+    func testAssignment() {
+        var matrix = Tensor<Int>(shape: [4, 3], itemsIncreasingFrom: 0)
+        let m2 = Tensor<Int>(shape: [2, 3], items: [10, 20, 30,
+                                                    40, 50, 60])
+        matrix[0, 0] = m2[1, 1]
+        XCTAssertEqual(matrix.item(at: [0, 0]), 50)
+    }
+
+    func testTranspose() {
+        var matrix = Tensor<Int>(shape: [2, 3], items: [1, 2, 3, 4, 5, 6])
+        var trans = Tensor<Int>(shape: matrix.shape.transpose, repeating: 0)
+        for i in 0..<matrix.shape[0] {
+            for j in 0..<matrix.shape[1] {
+                trans[j, i] = matrix[i, j]
+            }
+        }
+        XCTAssertEqual(trans.items, [1, 4, 2, 5, 3, 6])
+    }
+
     static var allTests : [(String, (DLVMTensorTests) -> () throws -> Void)] {
         return [
+            ("testIndexCalculation", testIndexCalculation),
+            ("testAddressing", testAddressing),
+            ("testInit", testInit),
+            ("testTextOutput", testTextOutput),
+            ("testEquality", testEquality),
+            ("testAssignment", testAssignment),
+            ("testTranspose", testTranspose),
         ]
     }
 
