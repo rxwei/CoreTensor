@@ -18,9 +18,9 @@
 //
 
 import XCTest
-@testable import DLVMTensor
+@testable import CoreTensor
 
-class DLVMTensorTests: XCTestCase {
+class CoreTensorTests: XCTestCase {
 
     func testIndexCalculation() {
         let shape: TensorShape = [1, 2, 3] // 6
@@ -114,7 +114,7 @@ class DLVMTensorTests: XCTestCase {
         XCTAssertEqual(trans.items, [1, 4, 2, 5, 3, 6])
     }
 
-    static var allTests : [(String, (DLVMTensorTests) -> () throws -> Void)] {
+    static var allTests : [(String, (CoreTensorTests) -> () throws -> Void)] {
         return [
             ("testIndexCalculation", testIndexCalculation),
             ("testAddressing", testAddressing),

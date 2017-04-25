@@ -1,6 +1,6 @@
 import XCTest
-@testable import DLVMTensorTests
+@testable import CoreTensorTests
 
 XCTMain([
-    testCase(DLVMTensorTests.allTests),
+    testCase(CoreTensorTests.allTests),
 ])
