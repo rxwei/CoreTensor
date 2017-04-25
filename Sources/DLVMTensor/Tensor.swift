@@ -1,6 +1,6 @@
 //
 //  Tensor.swift
-//  DLVM
+//  CoreTensor
 //
 //  Copyright 2016-2017 Richard Wei.
 //

@@ -23,5 +23,8 @@ let package = Package(
     name: "DLVMTensor",
     targets: [
         Target(name: "DLVMTensor"),
+    ],
+    dependencies: [
+        .Package(url: "https://github.com/rxwei/Funky", majorVersion: 1)
     ]
 )
