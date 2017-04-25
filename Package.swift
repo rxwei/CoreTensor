@@ -20,7 +20,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CoreTesnor",
+    name: "CoreTensor",
     targets: [
         Target(name: "CoreTensor"),
     ],
