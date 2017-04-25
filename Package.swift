@@ -1,6 +1,6 @@
 //  
 //  Package.swift
-//  DLVM
+//  CoreTensor
 //
 //  Copyright 2016-2017 Richard Wei.
 //
@@ -20,9 +20,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "DLVMTensor",
+    name: "CoreTesnor",
     targets: [
-        Target(name: "DLVMTensor"),
+        Target(name: "CoreTensor"),
     ],
     dependencies: [
         .Package(url: "https://github.com/rxwei/Funky", majorVersion: 1)
