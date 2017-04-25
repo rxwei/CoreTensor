@@ -217,6 +217,9 @@ infix operator ⊗ : MultiplicationPrecedence
 /// Matrix multiplication operator
 infix operator • : MultiplicationPrecedence
 
+/// Broadcasting configuration
+public typealias BroadcastingConfig = [Int]
+
 // MARK: - Transformations
 public extension TensorShape {
 
@@ -328,7 +331,8 @@ public extension TensorShape {
     /// - Note:
     ///   A braodcasting configuration is a list of indices, each corresponding to
     ///   the
-    func isBroadcastable(to other: TensorShape, at broadcastDims: [Int]) -> Bool {
+    func isBroadcastable(to other: TensorShape,
+                         at broadcastDims: BroadcastingConfig) -> Bool {
         return broadcastDims.count == count
             /// Must be ascending
             && zip(broadcastDims, broadcastDims.dropFirst()).reduce(true, {$0 && $1.0 < $1.1})
