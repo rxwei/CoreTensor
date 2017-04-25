@@ -17,8 +17,6 @@
 //  limitations under the License.
 //
 
-import Funky
-
 /// Tensor shape
 public struct TensorShape : ExpressibleByArrayLiteral {
 
@@ -343,4 +341,12 @@ public extension TensorShape {
             && broadcastDims.enumerated().forAll { i, d in self[i] < 1 || self[i] == broadcastDims[d] }
     }
 
+}
+
+// MARK: - Sequence helpers
+extension Sequence {
+    /// Returns true if all elements satisfy the predicate
+    func forAll(_ predicate: (Iterator.Element) -> Bool) -> Bool {
+        return reduce(true, { $0 && predicate($1) })
+    }
 }

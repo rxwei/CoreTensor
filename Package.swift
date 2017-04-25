@@ -25,6 +25,5 @@ let package = Package(
         Target(name: "CoreTensor"),
     ],
     dependencies: [
-        .Package(url: "https://github.com/rxwei/Funky", majorVersion: 1)
     ]
 )
