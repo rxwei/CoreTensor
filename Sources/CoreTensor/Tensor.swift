@@ -58,6 +58,7 @@ internal extension TensorProtocol where IndexDistance == Int {
 
 /// Tensor
 public struct Tensor<ItemType> : TensorProtocol {
+    public typealias Element = Tensor<ItemType>
 
     /// Sub-tensor (element) shape
     public internal(set) var elementShape: TensorShape? {
@@ -119,7 +120,7 @@ public struct Tensor<ItemType> : TensorProtocol {
     }
 
     /// Initialize a tensor from a sequence of tensors of element shape
-    public init<S : Collection>(elementShape: TensorShape, elements: S)
+    public init<S : Sequence>(elementShape: TensorShape, elements: S)
         where S.Iterator.Element == Tensor<ItemType> {
         self.init(elementShape: elementShape)
         self.append(contentsOf: elements)
@@ -171,8 +172,6 @@ public struct Tensor<ItemType> : TensorProtocol {
 
 // MARK: - Array literal conversion
 extension Tensor : ExpressibleByArrayLiteral {
-    public typealias Element = ItemType
-
     public init(arrayLiteral elements: ItemType...) {
         self.init(elementShape: .scalar, items: ContiguousArray(elements))
     }
@@ -248,8 +247,8 @@ public extension Tensor {
 
 }
 
-// MARK: - IntegerArithmetic
-public extension Tensor where ItemType : IntegerArithmetic {
+// MARK: - Numeric
+public extension Tensor where ItemType : Numeric {
 
     mutating func incrementItem(at index: Int, by newValue: ItemType) {
         items[items.startIndex.advanced(by: index)] += newValue
@@ -263,10 +262,13 @@ public extension Tensor where ItemType : IntegerArithmetic {
         items[items.startIndex.advanced(by: index)] *= newValue
     }
 
+}
+
+// MARK: - BinaryInteger
+public extension Tensor where ItemType : BinaryInteger {
     mutating func divideItem(at index: Int, by newValue: ItemType) {
         items[items.startIndex.advanced(by: index)] /= newValue
     }
-
 }
 
 // MARK: - FloatingPoint
