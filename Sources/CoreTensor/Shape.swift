@@ -338,7 +338,7 @@ public extension TensorShape {
             && broadcastDims.forAll(other.indices.contains)
             /// Broadcastee's dimension sizes must be either 1 (degenerate) or equal
             /// to the target dimension size
-            && broadcastDims.enumerated().forAll { i, d in self[i] < 1 || self[i] == broadcastDims[d] }
+            && broadcastDims.enumerated().forAll { self[$0.0] < 1 || self[$0.0] == broadcastDims[$0.1] }
     }
 
 }
