@@ -170,12 +170,7 @@ public struct Tensor<ItemType> : TensorProtocol {
 
 }
 
-// MARK: - Array literal conversion
-extension Tensor : ExpressibleByArrayLiteral {
-    public init(arrayLiteral elements: ItemType...) {
-        self.init(elementShape: .scalar, items: ContiguousArray(elements))
-    }
-}
+/// - TODO: Add conditional expressibility conformance in Swift 4
 
 // MARK: - Element equality and item equality
 public extension Tensor where ItemType : Equatable {
@@ -247,6 +242,8 @@ public extension Tensor {
 
 }
 
+#if swift(>=4.0)
+
 // MARK: - Numeric
 public extension Tensor where ItemType : Numeric {
 
@@ -270,6 +267,31 @@ public extension Tensor where ItemType : BinaryInteger {
         items[items.startIndex.advanced(by: index)] /= newValue
     }
 }
+
+#else // Swift 3
+
+// MARK: - Numeric
+public extension Tensor where ItemType : IntegerArithmetic {
+
+    mutating func incrementItem(at index: Int, by newValue: ItemType) {
+        items[items.startIndex.advanced(by: index)] += newValue
+    }
+
+    mutating func decrementItem(at index: Int, by newValue: ItemType) {
+        items[items.startIndex.advanced(by: index)] -= newValue
+    }
+
+    mutating func multiplyItem(at index: Int, by newValue: ItemType) {
+        items[items.startIndex.advanced(by: index)] *= newValue
+    }
+
+    mutating func divideItem(at index: Int, by newValue: ItemType) {
+        items[items.startIndex.advanced(by: index)] /= newValue
+    }
+
+}
+
+#endif
 
 // MARK: - FloatingPoint
 public extension Tensor where ItemType : FloatingPoint {

@@ -85,7 +85,7 @@ class CoreTensorTests: XCTestCase {
     }
 
     func testTextOutput() {
-        let rank1: Tensor<Int> = [1, 2, 3, 4, 5]
+        let rank1: Tensor<Int> = Tensor(shape: [5], items: [1, 2, 3, 4, 5])
         let rank2 = Tensor<Int>(shape: [2, 3], items: [1, 2, 3,
                                                        4, 5, 6])
         let rank3 = Tensor<Int>(shape: [2, 3, 2], items: [1, 2,  3, 4,   5, 6,
