@@ -215,8 +215,13 @@ infix operator ⊗ : MultiplicationPrecedence
 /// Matrix multiplication operator
 infix operator • : MultiplicationPrecedence
 
-/// Broadcasting configuration
-public typealias BroadcastingConfig = [Int]
+public struct BroadcastingConfig {
+    public enum Direction {
+        case left, right
+    }
+    public var indices: [Int]
+    public var direction: Direction
+}
 
 // MARK: - Transformations
 public extension TensorShape {
@@ -329,18 +334,16 @@ public extension TensorShape {
     /// - Note:
     ///   A braodcasting configuration is a list of indices, each corresponding to
     ///   the
-    func isBroadcastable(to other: TensorShape,
-                         at broadcastDims: BroadcastingConfig) -> Bool {
-        return broadcastDims.count == count
+    func isBroadcastable(to other: TensorShape, at indices: [Int]) -> Bool {
+        return indices.count == count
             /// Must be ascending
-            && zip(broadcastDims, broadcastDims.dropFirst()).reduce(true, {$0 && $1.0 < $1.1})
+            && zip(indices, indices.dropFirst()).reduce(true, {$0 && $1.0 < $1.1})
             /// Dimension indices must not be out of bounds of other's shape
-            && broadcastDims.forAll(other.indices.contains)
+            && indices.forAll(other.indices.contains)
             /// Broadcastee's dimension sizes must be either 1 (degenerate) or equal
             /// to the target dimension size
-            && broadcastDims.enumerated().forAll { self[$0.0] < 1 || self[$0.0] == broadcastDims[$0.1] }
+            && indices.enumerated().forAll { self[$0.0] < 1 || self[$0.0] == indices[$0.1] }
     }
-
 }
 
 // MARK: - Sequence helpers
