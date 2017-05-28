@@ -221,6 +221,11 @@ public struct BroadcastingConfig {
     }
     public var indices: [Int]
     public var direction: Direction
+
+    public init(indices: [Int], direction: Direction) {
+        self.indices = indices
+        self.direction = direction
+    }
 }
 
 // MARK: - Transformations
