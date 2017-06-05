@@ -215,19 +215,6 @@ infix operator ⊗ : MultiplicationPrecedence
 /// Matrix multiplication operator
 infix operator • : MultiplicationPrecedence
 
-public struct BroadcastingConfig {
-    public enum Direction {
-        case left, right
-    }
-    public var indices: [Int]
-    public var direction: Direction
-
-    public init(indices: [Int], direction: Direction) {
-        self.indices = indices
-        self.direction = direction
-    }
-}
-
 // MARK: - Transformations
 public extension TensorShape {
 
@@ -331,23 +318,27 @@ public extension TensorShape {
         return TensorShape(reversed())
     }
 
-    /// Determine whether shape can be broadcast to a higher-dimensional shape
-    ///
-    /// - Parameters:
-    ///   - other: target dimension
-    ///   - dimensions: the broadcasting configuration
-    /// - Note:
-    ///   A braodcasting configuration is a list of indices, each corresponding to
-    ///   the
-    func isBroadcastable(to other: TensorShape, at indices: [Int]) -> Bool {
-        return indices.count == count
-            /// Must be ascending
-            && zip(indices, indices.dropFirst()).reduce(true, {$0 && $1.0 < $1.1})
-            /// Dimension indices must not be out of bounds of other's shape
-            && indices.forAll(other.indices.contains)
-            /// Broadcastee's dimension sizes must be either 1 (degenerate) or equal
-            /// to the target dimension size
-            && indices.enumerated().forAll { self[$0.0] < 1 || self[$0.0] == indices[$0.1] }
+    /// Broadcast degenerate dimensions
+    func broadcast(with other: TensorShape) -> TensorShape? {
+        /// If one is scalar, return the other
+        if isScalar { return other }
+        if other.isScalar { return self }
+        /// Rank must be equal
+        guard rank == other.rank else { return nil }
+        var shape: TensorShape = []
+        /// For each pair of corresponding dimensions `l` and `r`, it must either
+        /// be the case that `l` is equal to `r`, or that either of the two is 1.
+        for (l, r) in zip(self, other) {
+            if l == 1 || l == r { shape.dimensions.append(r) }
+            else if r == 1 { shape.dimensions.append(l) }
+            else { return nil }
+        }
+        return shape
+    }
+
+    /// Determine if two shapes are compatible, a.k.a. broadcastable
+    func isCompatible(with other: TensorShape) -> Bool {
+        return broadcast(with: other) != nil
     }
 }
 
