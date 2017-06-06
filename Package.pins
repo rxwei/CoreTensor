@@ -1,12 +1,7 @@
 {
   "autoPin": true,
   "pins": [
-    {
-      "package": "Funky",
-      "reason": null,
-      "repositoryURL": "https://github.com/rxwei/Funky",
-      "version": "1.0.4"
-    }
+
   ],
   "version": 1
 }
