@@ -293,7 +293,7 @@ public extension TensorShape {
     /// Determine if self can be matrix-multiplied by other
     func isMatrixMultiplicable(by other: TensorShape) -> Bool {
         return rank == other.rank
-            && rank > 2
+            && rank >= 2
             && prefix(rank-2) == other.prefix(rank-2)
             && self[rank-1] == other[rank-2]
     }
