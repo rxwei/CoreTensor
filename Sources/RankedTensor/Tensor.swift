@@ -1,8 +1,8 @@
 //
-//  Package.swift
+//  Tensor.swift
 //  CoreTensor
 //
-//  Copyright 2016-2017 Richard Wei.
+//  Copyright 2016-2017 DLVM Team.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,14 +17,20 @@
 //  limitations under the License.
 //
 
-import PackageDescription
+public struct Tensor<R : StaticRank> {
+    public typealias Element = R.ElementTensor
+    public typealias Shape = R.Shape
 
-let package = Package(
-    name: "CoreTensor",
-    targets: [
-        Target(name: "CoreTensor"),
-        Target(name: "RankedTensor", dependencies: ["CoreTensor"]),
-    ],
-    dependencies: [
-    ]
-)
+    public static var rank: UInt {
+        return R.rank
+    }
+
+    public var shape: Shape
+
+    /// - TODO: Add stuff here
+}
+
+public typealias Tensor1D<T> = Tensor<R1<T>>
+public typealias Tensor2D<T> = Tensor<R2<T>>
+public typealias Tensor3D<T> = Tensor<R3<T>>
+public typealias Tensor4D<T> = Tensor<R4<T>>
