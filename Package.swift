@@ -25,6 +25,7 @@ let package = Package(
     targets: [
         .target(name: "CoreTensor"),
         .target(name: "RankedTensor", dependencies: ["CoreTensor"]),
+        .testTarget(name: "CoreTensorTests")
     ],
     swiftLanguageVersions: [ 4 ]
 )
