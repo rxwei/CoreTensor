@@ -17,7 +17,9 @@
 //  limitations under the License.
 //
 
-public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollection {
+public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollection
+    where IndexDistance == Int
+{
     associatedtype UnitType
     var units: ContiguousArray<UnitType> { get }
     var unitCountPerElement: IndexDistance { get }
@@ -26,8 +28,7 @@ public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollect
     subscript(index: TensorIndex) -> Self { get }
 }
 
-public extension TensorProtocol where IndexDistance == Int {
-    /// Tensor shape
+public extension TensorProtocol {
     var shape: TensorShape {
         return elementShape?.prepending(count) ?? .scalar
     }
@@ -45,7 +46,7 @@ public extension TensorProtocol where IndexDistance == Int {
     }
 }
 
-internal extension TensorProtocol where IndexDistance == Int {
+internal extension TensorProtocol {
     func unitIndex(fromIndex index: Int) -> Int {
         return unitCountPerElement * index
     }
@@ -189,7 +190,7 @@ public extension Tensor where UnitType : Equatable {
 
 }
 
-public extension TensorProtocol where IndexDistance == Int {
+public extension TensorProtocol {
 
     public func isSimilar(to other: Self) -> Bool {
         return shape ~ other.shape
@@ -428,7 +429,7 @@ extension Tensor : RandomAccessCollection {
 }
 
 public extension RangeReplaceableRandomAccessSlice
-    where Base : TensorProtocol, Base.Index == Int, IndexDistance == Int
+    where Base : TensorProtocol, Base.Index == Int
 {
     public var shape: TensorShape {
         return base.elementShape?.prepending(count) ?? .scalar
