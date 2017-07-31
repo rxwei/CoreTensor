@@ -17,6 +17,8 @@
 //  limitations under the License.
 //
 
+import struct CoreTensor.TensorShape
+
 public struct Tensor<R : StaticRank> {
     public typealias Element = R.ElementTensor
     public typealias Shape = R.Shape
@@ -28,6 +30,18 @@ public struct Tensor<R : StaticRank> {
     public var shape: Shape
 
     /// - TODO: Add stuff here
+}
+
+public extension Tensor {
+    var dynamicShape: TensorShape {
+        var shape = self.shape
+        return withUnsafePointer(to: &shape) { ptr in
+            ptr.withMemoryRebound(to: UInt.self, capacity: 1) { ptr in
+                let buf = UnsafeBufferPointer(start: ptr, count: Int(R.rank))
+                return TensorShape(buf.lazy.map{Int($0)})
+            }
+        }
+    }
 }
 
 public typealias Tensor1D<T> = Tensor<R1<T>>
