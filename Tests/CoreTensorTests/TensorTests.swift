@@ -95,6 +95,15 @@ class CoreTensorTests: XCTestCase {
         XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
     }
 
+    func testMutating() {
+        var tensor = Tensor<Int>(shape: [5, 4, 3], repeating: 1)
+        for i in 0..<tensor.units.count {
+            tensor.multiplyUnit(at: i, by: i)
+            tensor.incrementUnit(at: i, by: 1)
+        }
+        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map{$0}))
+    }
+
     func testAssignment() {
         var matrix = Tensor<Int>(shape: [4, 3], unitsIncreasingFrom: 0)
         let m2 = Tensor<Int>(shape: [2, 3], units: [10, 20, 30,
@@ -121,6 +130,7 @@ class CoreTensorTests: XCTestCase {
             ("testInit", testInit),
             ("testTextOutput", testTextOutput),
             ("testEquality", testEquality),
+            ("testMutating", testMutating),
             ("testAssignment", testAssignment),
             ("testTranspose", testTranspose),
         ]

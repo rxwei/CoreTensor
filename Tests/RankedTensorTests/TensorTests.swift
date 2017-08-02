@@ -51,11 +51,21 @@ class RankedTensorTests: XCTestCase {
         XCTAssertFalse(highTensor.isIsomorphic(to: lowTensor))
     }
 
+    func testMutating() {
+        var tensor = Tensor3D<Int>(shape: (5, 4, 3), repeating: 1)
+        for i in 0..<tensor.units.count {
+            tensor.multiplyUnit(at: i, by: i)
+            tensor.incrementUnit(at: i, by: 1)
+        }
+        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map{$0}))
+    }
+
     static var allTests : [(String, (RankedTensorTests) -> () throws -> Void)] {
         return [
             ("testInit", testInit),
             ("testRanks", testRanks),
             ("testEquality", testEquality),
+            ("testMutating", testMutating),
         ]
     }
 
