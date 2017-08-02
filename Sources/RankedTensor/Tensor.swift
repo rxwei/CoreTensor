@@ -213,6 +213,7 @@ extension Tensor : RandomAccessCollection {
     public typealias Element = Tensor<ElementRank, DataType>
 
     /// Access a sub-tensor at index
+    /// BUG: rank of returned sub-tensor is not always `ElementRank`
     public subscript(index: TensorIndex) -> Element {
             get {
                 let newTensorShape = dynamicShape.dropFirst(index.count)
@@ -233,6 +234,7 @@ extension Tensor : RandomAccessCollection {
     /// Access a sub-tensor at an index specified by a list of dimensional indices
     /// - parameter indices: tensor indices
     /// - note: the count of indices must equal the raw rank of the tensor
+    /// BUG: rank of returned sub-tensor is not always `ElementRank`
     public subscript(indices: Int...) -> Element {
             get {
                 return self[TensorIndex(indices)]
