@@ -117,6 +117,19 @@ public extension Tensor where R.DataType : Equatable {
     }
 }
 
+public extension Tensor {
+    // TODO: Fix `isSimilar` bug ('~' is not a binary operator)
+    /*
+    public func isSimilar<A>(to other: Tensor<A>) -> Bool {
+        return dynamicShape ~ other.dynamicShape
+    }
+    */
+
+    public func isIsomorphic<A>(to other: Tensor<A>) -> Bool {
+        return dynamicShape == other.dynamicShape
+    }
+}
+
 public typealias Tensor1D<T> = Tensor<R1<T>>
 public typealias Tensor2D<T> = Tensor<R2<T>>
 public typealias Tensor3D<T> = Tensor<R3<T>>
