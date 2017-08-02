@@ -29,9 +29,9 @@ class RankedTensorTests: XCTestCase {
         XCTAssertTrue(vector.shape == (3))
         XCTAssertEqual(vector.units, ContiguousArray(repeating: 5, count: 3))
 
-        let matrix = Matrix<Int>(shape: (4, 5), repeating: 1)
+        let matrix = Matrix<Int>(shape: (4, 5), unitsIncreasingFrom: 0)
         XCTAssertTrue(matrix.shape == (4, 5))
-        XCTAssertEqual(matrix.units, ContiguousArray(repeating: 1, count: 20))
+        XCTAssertEqual(matrix.units, ContiguousArray((0..<20).map{$0}))
     }
 
     func testRanks() {

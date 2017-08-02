@@ -130,6 +130,64 @@ public extension Tensor {
     }
 }
 
+extension Tensor where R.DataType : Strideable {
+    public init(shape: Shape, unitsIncreasingFrom lowerBound: DataType) {
+        var unit = lowerBound
+        self.init(shape: shape, supplier: {
+            defer { unit = unit.advanced(by: 1) }
+            return unit
+        })
+    }
+}
+
+/*
+extension Tensor where R.DataType : Strideable, R.DataType.Stride : SignedInteger, R.ElementTensor == R.DataType {
+    public init(scalarElementsIn bounds: CountableRange<DataType>) {
+        self.init(shape: (bounds.count), units: ContiguousArray(bounds))
+    }
+
+    public init(scalarElementsIn bounds: CountableClosedRange<DataType>) {
+        self.init(shape: (bounds.count), units: ContiguousArray(bounds))
+    }
+}
+*/
+
+public extension Tensor {
+    func makeUnitIterator() -> IndexingIterator<ContiguousArray<DataType>> {
+        return units.makeIterator()
+    }
+
+    mutating func updateUnit(at index: Int, to newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] = newValue
+    }
+}
+
+public extension Tensor where R.DataType : Numeric {
+    mutating func incrementUnit(at index: Int, by newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] += newValue
+    }
+
+    mutating func decrementUnit(at index: Int, by newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] -= newValue
+    }
+
+    mutating func multiplyUnit(at index: Int, by newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] *= newValue
+    }
+}
+
+public extension Tensor where R.DataType : BinaryInteger {
+    mutating func divideUnit(at index: Int, by newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] /= newValue
+    }
+}
+
+public extension Tensor where R.DataType : FloatingPoint {
+    mutating func divideUnit(at index: Int, by newValue: DataType) {
+        units[units.startIndex.advanced(by: index)] /= newValue
+    }
+}
+
 public typealias Tensor1D<T> = Tensor<R1<T>>
 public typealias Tensor2D<T> = Tensor<R2<T>>
 public typealias Tensor3D<T> = Tensor<R3<T>>
