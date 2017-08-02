@@ -42,10 +42,20 @@ class RankedTensorTests: XCTestCase {
         XCTAssertEqual(tensor.shape.2, 3)
     }
 
+    func testEquality() {
+        let highTensor = Tensor3D<Int>(shape: (1, 4, 3), repeating: 0)
+        let lowTensor = Tensor2D<Int>(shape: (4, 3), repeating: 0)
+        XCTAssertTrue(highTensor.unitsEqual(lowTensor))
+        XCTAssertFalse(highTensor.elementsEqual(lowTensor))
+        XCTAssertFalse(highTensor == lowTensor)
+        XCTAssertFalse(highTensor.isIsomorphic(to: lowTensor))
+    }
+
     static var allTests : [(String, (RankedTensorTests) -> () throws -> Void)] {
         return [
             ("testInit", testInit),
             ("testRanks", testRanks),
+            ("testEquality", testEquality),
         ]
     }
 
