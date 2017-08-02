@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import struct CoreTensor.TensorIndex
 import struct CoreTensor.TensorShape
 
 public struct Tensor<R : StaticRank> {
@@ -95,9 +96,31 @@ public extension Tensor {
     }
 }
 
-public typealias Vector<T> = Tensor<R1<T>>
-public typealias Matrix<T> = Tensor<R2<T>>
+/// - TODO: Add conditional expressibility conformance in Swift 4
+
+public extension Tensor where R.DataType : Equatable {
+    public static func ==<A>(lhs: Tensor<R>, rhs: Tensor<A>) -> Bool
+        where A.DataType == R.DataType {
+        return lhs.elementsEqual(rhs)
+    }
+
+    public func elementsEqual<A>(_ other: Tensor<A>) -> Bool
+        where A.DataType == R.DataType {
+        // guard shape == other.shape else { return false }
+        guard dynamicShape == other.dynamicShape else { return false }
+        return units.elementsEqual(other.units)
+    }
+
+    public func unitsEqual<A>(_ other: Tensor<A>) -> Bool
+        where A.DataType == R.DataType {
+        return units.elementsEqual(other.units)
+    }
+}
+
 public typealias Tensor1D<T> = Tensor<R1<T>>
 public typealias Tensor2D<T> = Tensor<R2<T>>
 public typealias Tensor3D<T> = Tensor<R3<T>>
 public typealias Tensor4D<T> = Tensor<R4<T>>
+
+public typealias Vector<T> = Tensor1D<T>
+public typealias Matrix<T> = Tensor2D<T>
