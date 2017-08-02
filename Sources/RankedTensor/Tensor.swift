@@ -20,10 +20,12 @@
 import struct CoreTensor.TensorIndex
 import struct CoreTensor.TensorShape
 
-public struct Tensor<R : StaticRank> {
-    public typealias Element = R.ElementTensor
+public protocol TensorProtocol {}
+
+public struct Tensor<R : StaticRank, DataType : TensorDataType> : TensorProtocol {
     public typealias Shape = R.Shape
-    public typealias DataType = R.DataType
+    public typealias ElementShape = R.ElementShape
+    public typealias ElementRank = R.ElementRank
 
     /// Tensor rank
     public static var rank: UInt {
@@ -50,7 +52,7 @@ public struct Tensor<R : StaticRank> {
     /// Initialize a tensor using an existing slice of elements in row-major order
     /// - parameter shape: tensor shape
     /// - parameter elements: slice of existing elements in row-major order
-    fileprivate init(shape: Shape, units: ContiguousArray<DataType>) {
+    public init(shape: Shape, units: ContiguousArray<DataType>) {
         // TODO: Reduce number of calls to `shapeToArray`
         let shapeArray = Tensor.shapeToArray(shape)
         let contiguousSize: Int = shapeArray.reduce(1, *)
@@ -91,6 +93,15 @@ public extension Tensor {
         }
     }
 
+    fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementShape {
+        var array = array
+        return withUnsafePointer(to: &array[0]) { ptr in
+            ptr.withMemoryRebound(to: ElementShape.self, capacity: 1) { ptr in
+                return ptr.pointee
+            }
+        }
+    }
+
     var dynamicShape: TensorShape {
         return TensorShape(Tensor.shapeToArray(self.shape))
     }
@@ -98,21 +109,18 @@ public extension Tensor {
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
 
-public extension Tensor where R.DataType : Equatable {
-    public static func ==<A>(lhs: Tensor<R>, rhs: Tensor<A>) -> Bool
-        where A.DataType == R.DataType {
+public extension Tensor where DataType : Equatable {
+    public static func ==<A>(lhs: Tensor<R, DataType>, rhs: Tensor<A, DataType>) -> Bool {
         return lhs.elementsEqual(rhs)
     }
 
-    public func elementsEqual<A>(_ other: Tensor<A>) -> Bool
-        where A.DataType == R.DataType {
+    public func elementsEqual<A>(_ other: Tensor<A, DataType>) -> Bool {
             // guard shape == other.shape else { return false }
             guard dynamicShape == other.dynamicShape else { return false }
             return units.elementsEqual(other.units)
     }
 
-    public func unitsEqual<A>(_ other: Tensor<A>) -> Bool
-        where A.DataType == R.DataType {
+    public func unitsEqual<A>(_ other: Tensor<A, DataType>) -> Bool {
             return units.elementsEqual(other.units)
     }
 }
@@ -125,12 +133,12 @@ public extension Tensor {
     }
     */
 
-    public func isIsomorphic<A>(to other: Tensor<A>) -> Bool {
+    public func isIsomorphic<A>(to other: Tensor<A, DataType>) -> Bool {
         return dynamicShape == other.dynamicShape
     }
 }
 
-extension Tensor where R.DataType : Strideable {
+extension Tensor where DataType : Strideable {
     public init(shape: Shape, unitsIncreasingFrom lowerBound: DataType) {
         var unit = lowerBound
         self.init(shape: shape, supplier: {
@@ -140,17 +148,15 @@ extension Tensor where R.DataType : Strideable {
     }
 }
 
-/*
-extension Tensor where R.DataType : Strideable, R.DataType.Stride : SignedInteger, R.ElementTensor == R.DataType {
+extension Tensor where DataType : Strideable, DataType.Stride : SignedInteger, R.Shape == (UInt) {
     public init(scalarElementsIn bounds: CountableRange<DataType>) {
-        self.init(shape: (bounds.count), units: ContiguousArray(bounds))
+        self.init(shape: (UInt(bounds.count)), units: ContiguousArray(bounds))
     }
 
     public init(scalarElementsIn bounds: CountableClosedRange<DataType>) {
-        self.init(shape: (bounds.count), units: ContiguousArray(bounds))
+        self.init(shape: (UInt(bounds.count)), units: ContiguousArray(bounds))
     }
 }
-*/
 
 public extension Tensor {
     func makeUnitIterator() -> IndexingIterator<ContiguousArray<DataType>> {
@@ -162,7 +168,7 @@ public extension Tensor {
     }
 }
 
-public extension Tensor where R.DataType : Numeric {
+public extension Tensor where DataType : Numeric {
     mutating func incrementUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] += newValue
     }
@@ -176,22 +182,139 @@ public extension Tensor where R.DataType : Numeric {
     }
 }
 
-public extension Tensor where R.DataType : BinaryInteger {
+public extension Tensor where DataType : BinaryInteger {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] /= newValue
     }
 }
 
-public extension Tensor where R.DataType : FloatingPoint {
+public extension Tensor where DataType : FloatingPoint {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] /= newValue
     }
 }
 
-public typealias Tensor1D<T> = Tensor<R1<T>>
-public typealias Tensor2D<T> = Tensor<R2<T>>
-public typealias Tensor3D<T> = Tensor<R3<T>>
-public typealias Tensor4D<T> = Tensor<R4<T>>
+public extension Tensor {
+    func unitIndex(fromIndex index: Int) -> Int {
+        return unitCountPerElement * index
+    }
 
-public typealias Vector<T> = Tensor1D<T>
-public typealias Matrix<T> = Tensor2D<T>
+    func unitSubrange(from tensorSubrange: Range<Int>) -> Range<Int> {
+        return unitIndex(fromIndex: tensorSubrange.lowerBound)
+            ..< unitIndex(fromIndex: tensorSubrange.upperBound)
+    }
+}
+
+/// - TODO: Add conditional expressibility conformance in Swift 4
+// `extension Tensor : RandomAccessCollection where R : NonScalarRank { ... }`
+
+extension Tensor : RandomAccessCollection {
+    public typealias Index = Int
+    public typealias Element = Tensor<ElementRank, DataType>
+
+    /// Access a sub-tensor at index
+    public subscript(index: TensorIndex) -> Element {
+            get {
+                let newTensorShape = dynamicShape.dropFirst(index.count)
+                let contiguousIndex = index.contiguousIndex(in: dynamicShape)
+                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize as Range
+                let newShape = Tensor.arrayToElementShape(Array(dynamicShape.dimensions.dropFirst()))
+                return Element(shape: newShape, units: ContiguousArray(units[range]))
+            }
+            set {
+                let newShape = dynamicShape.dropFirst(index.count)
+                precondition(newShape == newValue.dynamicShape, "Shape mismatch")
+                let contiguousIndex = index.contiguousIndex(in: dynamicShape)
+                let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+                units.replaceSubrange(range, with: newValue.units)
+            }
+    }
+
+    /// Access a sub-tensor at an index specified by a list of dimensional indices
+    /// - parameter indices: tensor indices
+    /// - note: the count of indices must equal the raw rank of the tensor
+    public subscript(indices: Int...) -> Element {
+            get {
+                return self[TensorIndex(indices)]
+            }
+            set {
+                self[TensorIndex(indices)] = newValue
+            }
+    }
+
+    /// Access a sub-tensor at the current dimension at index
+    public subscript(index: Int) -> Element {
+            get {
+                let newTensorShape = dynamicShape.dropFirst()
+                let contiguousIndex = unitIndex(fromIndex: index)
+                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
+                let newShape = Tensor.arrayToElementShape(Array(dynamicShape.dimensions.dropFirst()))
+                return Element(shape: newShape, units: ContiguousArray(units[range]))
+            }
+            set {
+                let newShape = dynamicShape.dropFirst()
+                let contiguousIndex = unitIndex(fromIndex: index)
+                let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+                units.replaceSubrange(range, with: newValue.units)
+            }
+    }
+
+    public var count: Int {
+        return units.count / unitCountPerElement
+    }
+
+    /// Returns a sequence of tensor indices for scalar elements
+    public var indices: CountableRange<Int> {
+        return 0..<count
+    }
+
+    public var startIndex: Int {
+        return 0
+    }
+
+    public var endIndex: Int {
+        return count
+    }
+
+    /// Returns the index after the specified one in the current dimension
+    public func index(after i: Int) -> Int {
+        return i + 1
+    }
+
+    /// Returns the index before the specified one in the current dimension
+    public func index(before i: Int) -> Int {
+        return i - 1
+    }
+}
+
+extension Tensor where R.Shape == (UInt) {
+    /// Access scalar element at index
+    public subscript(index: TensorIndex) -> DataType {
+        get {
+            return units[index.first ?? 0]
+        }
+        set {
+            precondition(!units.isEmpty, "Vector is empty")
+            units[0] = newValue
+        }
+    }
+
+    /// Access scalar element at index
+    public subscript(index: Int) -> DataType {
+        get {
+            return units[index]
+        }
+        set {
+            precondition(!units.isEmpty, "Vector is empty")
+            units[0] = newValue
+        }
+    }
+}
+
+public typealias Tensor1D<T : TensorDataType> = Tensor<R1, T>
+public typealias Tensor2D<T : TensorDataType> = Tensor<R2, T>
+public typealias Tensor3D<T : TensorDataType> = Tensor<R3, T>
+public typealias Tensor4D<T : TensorDataType> = Tensor<R4, T>
+
+public typealias Vector<T : TensorDataType> = Tensor1D<T>
+public typealias Matrix<T : TensorDataType> = Tensor2D<T>

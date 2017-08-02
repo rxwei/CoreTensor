@@ -17,37 +17,62 @@
 //  limitations under the License.
 //
 
+public protocol TensorDataType : TensorProtocol {
+    /// - TODO: Add dynamic (DLVM IR) type getters
+    /// as requirements
+}
+extension Int8 : TensorDataType {}
+extension Int16 : TensorDataType {}
+extension Int32 : TensorDataType {}
+extension Int64 : TensorDataType {}
+extension Int : TensorDataType {}
+extension Float : TensorDataType {}
+extension Double : TensorDataType {}
+
 public protocol StaticRank {
-    associatedtype DataType
     associatedtype Shape
-    associatedtype ElementTensor
+    associatedtype ElementShape
+    associatedtype ElementRank : StaticRank where ElementRank.Shape == ElementShape
     static var rank: UInt { get }
 }
 
-public struct R1<T> : StaticRank {
+public struct R0 : StaticRank {
+    public typealias Shape = ()
+    public typealias ElementShape = ()
+    public typealias ElementRank = R0
+    public static var rank: UInt { return 0 }
+}
+
+public struct R1 : StaticRank {
     public typealias Shape = (UInt)
-    public typealias DataType = T
-    public typealias ElementTensor = T
+    public typealias ElementShape = (UInt)
+    public typealias ElementRank = R1
     public static var rank: UInt { return 1 }
 }
 
-public struct R2<T> : StaticRank {
+public struct R2 : StaticRank {
     public typealias Shape = (UInt, UInt)
-    public typealias DataType = T
-    public typealias ElementTensor = Tensor<R1<T>>
+    public typealias ElementShape = (UInt)
+    public typealias ElementRank = R1
     public static var rank: UInt { return 2 }
 }
 
-public struct R3<T> : StaticRank {
+public struct R3 : StaticRank {
     public typealias Shape = (UInt, UInt, UInt)
-    public typealias DataType = T
-    public typealias ElementTensor = Tensor<R2<T>>
+    public typealias ElementShape = (UInt, UInt)
+    public typealias ElementRank = R2
     public static var rank: UInt { return 3 }
 }
 
-public struct R4<T> : StaticRank {
+public struct R4 : StaticRank {
     public typealias Shape = (UInt, UInt, UInt, UInt)
-    public typealias DataType = T
-    public typealias ElementTensor = Tensor<R3<T>>
+    public typealias ElementShape = (UInt, UInt, UInt)
+    public typealias ElementRank = R3
     public static var rank: UInt { return 4 }
 }
+
+public protocol NonScalarRank {}
+extension R1 : NonScalarRank {}
+extension R2 : NonScalarRank {}
+extension R3 : NonScalarRank {}
+extension R4 : NonScalarRank {}

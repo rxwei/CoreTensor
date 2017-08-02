@@ -42,6 +42,17 @@ class RankedTensorTests: XCTestCase {
         XCTAssertEqual(tensor.shape.2, 3)
     }
 
+    func testAddressing() {
+        let tensor = Tensor3D<Int>(shape: (1, 2, 3), repeating: 0)
+        XCTAssertTrue(tensor[].shape == (2, 3))
+        XCTAssertTrue(tensor[0].shape == (2, 3))
+        XCTAssertTrue(tensor[0][1].shape == (3))
+        for subTensor in tensor[0] {
+            XCTAssertTrue(subTensor.shape == (3))
+            XCTAssertEqual(subTensor.units, [0, 0, 0])
+        }
+    }
+
     func testEquality() {
         let highTensor = Tensor3D<Int>(shape: (1, 4, 3), repeating: 0)
         let lowTensor = Tensor2D<Int>(shape: (4, 3), repeating: 0)
@@ -64,6 +75,7 @@ class RankedTensorTests: XCTestCase {
         return [
             ("testInit", testInit),
             ("testRanks", testRanks),
+            ("testAddressing", testAddressing),
             ("testEquality", testEquality),
             ("testMutating", testMutating),
         ]

@@ -22,7 +22,9 @@ public struct TensorShape : ExpressibleByArrayLiteral {
 
     public typealias SubSequence = TensorShape
 
-    fileprivate var dimensions: [Int]
+    /// NOTE: Temporarily changed access from fileprivate to public for use
+    /// with RankedTensor.
+    public var dimensions: [Int]
 
     /// Initialize with rank, and set the size of each dimension to 1.
     /// - parameter rank: rank of the tensor
