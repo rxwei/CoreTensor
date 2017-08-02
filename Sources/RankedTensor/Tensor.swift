@@ -106,14 +106,14 @@ public extension Tensor where R.DataType : Equatable {
 
     public func elementsEqual<A>(_ other: Tensor<A>) -> Bool
         where A.DataType == R.DataType {
-        // guard shape == other.shape else { return false }
-        guard dynamicShape == other.dynamicShape else { return false }
-        return units.elementsEqual(other.units)
+            // guard shape == other.shape else { return false }
+            guard dynamicShape == other.dynamicShape else { return false }
+            return units.elementsEqual(other.units)
     }
 
     public func unitsEqual<A>(_ other: Tensor<A>) -> Bool
         where A.DataType == R.DataType {
-        return units.elementsEqual(other.units)
+            return units.elementsEqual(other.units)
     }
 }
 
