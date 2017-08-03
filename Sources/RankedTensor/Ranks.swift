@@ -17,7 +17,7 @@
 //  limitations under the License.
 //
 
-public protocol TensorDataType : TensorProtocol {
+public protocol TensorDataType {
     /// - TODO: Add dynamic (DLVM IR) type getters
     /// as requirements
 }

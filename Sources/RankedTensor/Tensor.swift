@@ -20,9 +20,7 @@
 import struct CoreTensor.TensorIndex
 import struct CoreTensor.TensorShape
 
-public protocol TensorProtocol {}
-
-public struct Tensor<R : StaticRank, DataType : TensorDataType> : TensorProtocol {
+public struct Tensor<R : StaticRank, DataType : TensorDataType> {
     public typealias Shape = R.Shape
     public typealias ElementShape = R.ElementShape
     public typealias ElementRank = R.ElementRank
