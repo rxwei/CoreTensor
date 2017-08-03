@@ -44,7 +44,6 @@ class RankedTensorTests: XCTestCase {
 
     func testAddressing() {
         let tensor = Tensor3D<Int>(shape: (1, 2, 3), repeating: 0)
-        XCTAssertTrue(tensor[].shape == (2, 3))
         XCTAssertTrue(tensor[0].shape == (2, 3))
         XCTAssertTrue(tensor[0][1].shape == (3))
         for subTensor in tensor[0] {
