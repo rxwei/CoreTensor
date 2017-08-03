@@ -229,19 +229,6 @@ extension Tensor : RandomAccessCollection {
             }
     }
 
-    /// Access a sub-tensor at an index specified by a list of dimensional indices
-    /// - parameter indices: tensor indices
-    /// - note: the count of indices must equal the raw rank of the tensor
-    /// BUG: rank of returned sub-tensor is not always `ElementRank`
-    public subscript(indices: Int...) -> Element {
-            get {
-                return self[TensorIndex(indices)]
-            }
-            set {
-                self[TensorIndex(indices)] = newValue
-            }
-    }
-
     /// Access a sub-tensor at the current dimension at index
     public subscript(index: Int) -> Element {
             get {

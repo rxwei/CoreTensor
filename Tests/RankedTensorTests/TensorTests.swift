@@ -47,7 +47,6 @@ class RankedTensorTests: XCTestCase {
         XCTAssertTrue(tensor[].shape == (2, 3))
         XCTAssertTrue(tensor[0].shape == (2, 3))
         XCTAssertTrue(tensor[0][1].shape == (3))
-        // XCTAssertTrue(tensor[0, 1].shape == (3))
         for subTensor in tensor[0] {
             XCTAssertTrue(subTensor.shape == (3))
             XCTAssertEqual(subTensor.units, [0, 0, 0])
