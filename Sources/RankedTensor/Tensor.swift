@@ -19,8 +19,10 @@
 
 import struct CoreTensor.TensorShape
 
-public struct Tensor<R : StaticRank, DataType : TensorDataType> {
+public struct Tensor<R : StaticRank> {
+    public typealias DataType = R.DataType
     public typealias Shape = R.Shape
+    public typealias ElementTensor = R.ElementTensor
     public typealias ElementShape = R.ElementShape
     public typealias ElementRank = R.ElementRank
 
@@ -107,10 +109,11 @@ public extension Tensor {
         }
     }
 
-    fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementShape {
+    // fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementShape {
+    fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementRank.Shape {
         var array = array
         return withUnsafePointer(to: &array[0]) { ptr in
-            ptr.withMemoryRebound(to: ElementShape.self, capacity: 1) { ptr in
+            ptr.withMemoryRebound(to: ElementRank.Shape.self, capacity: 1) { ptr in
                 return ptr.pointee
             }
         }
@@ -127,36 +130,39 @@ public extension Tensor {
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
 
-public extension Tensor where DataType : Equatable {
-    public static func ==<A>(lhs: Tensor<R, DataType>, rhs: Tensor<A, DataType>) -> Bool {
-        return lhs.elementsEqual(rhs)
+public extension Tensor where R.DataType : Equatable {
+    public static func ==<A>(lhs: Tensor<R>, rhs: Tensor<A>) -> Bool
+        where A.DataType == DataType {
+            return lhs.elementsEqual(rhs)
     }
 
-    public func elementsEqual<A>(_ other: Tensor<A, DataType>) -> Bool {
+    public func elementsEqual<A>(_ other: Tensor<A>) -> Bool
+        where A.DataType == DataType {
             // guard shape == other.shape else { return false }
             guard dynamicShape == other.dynamicShape else { return false }
             return units.elementsEqual(other.units)
     }
 
-    public func unitsEqual<A>(_ other: Tensor<A, DataType>) -> Bool {
+    public func unitsEqual<A>(_ other: Tensor<A>) -> Bool
+        where A.DataType == DataType {
             return units.elementsEqual(other.units)
     }
 }
 
 public extension Tensor {
     // TODO: Fix `isSimilar` bug ('~' is not a binary operator)
-    /*
-    public func isSimilar<A>(to other: Tensor<A, DataType>) -> Bool {
-        return dynamicShape ~ other.dynamicShape
+    public func isSimilar<A>(to other: Tensor<A>) -> Bool
+        where A.DataType == DataType {
+            return dynamicShape.isSimilar(to: other.dynamicShape)
     }
-    */
 
-    public func isIsomorphic<A>(to other: Tensor<A, DataType>) -> Bool {
-        return dynamicShape == other.dynamicShape
+    public func isIsomorphic<A>(to other: Tensor<A>) -> Bool
+        where A.DataType == DataType {
+            return dynamicShape == other.dynamicShape
     }
 }
 
-extension Tensor where DataType : Strideable {
+extension Tensor where R.DataType : Strideable {
     public init(shape: Shape, unitsIncreasingFrom lowerBound: DataType) {
         var unit = lowerBound
         self.init(shape: shape, supplier: {
@@ -166,7 +172,7 @@ extension Tensor where DataType : Strideable {
     }
 }
 
-extension Tensor where DataType : Strideable, DataType.Stride : SignedInteger, R.Shape == (UInt) {
+extension Tensor where R.DataType : Strideable, R.DataType.Stride : SignedInteger, R.Shape == (UInt) {
     public init(scalarElementsIn bounds: CountableRange<DataType>) {
         self.init(shape: (UInt(bounds.count)), units: ContiguousArray(bounds))
     }
@@ -186,7 +192,7 @@ public extension Tensor {
     }
 }
 
-public extension Tensor where DataType : Numeric {
+public extension Tensor where R.DataType : Numeric {
     mutating func incrementUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] += newValue
     }
@@ -200,13 +206,13 @@ public extension Tensor where DataType : Numeric {
     }
 }
 
-public extension Tensor where DataType : BinaryInteger {
+public extension Tensor where R.DataType : BinaryInteger {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] /= newValue
     }
 }
 
-public extension Tensor where DataType : FloatingPoint {
+public extension Tensor where R.DataType : FloatingPoint {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
         units[units.startIndex.advanced(by: index)] /= newValue
     }
@@ -228,23 +234,43 @@ public extension Tensor {
 
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
-    public typealias Element = Tensor<ElementRank, DataType>
+    public typealias Element = ElementTensor
+
+    public func createSubTensor(shape: ElementRank.Shape, units: ContiguousArray<ElementRank.DataType>)
+        -> Tensor<ElementRank> {
+            return Tensor<ElementRank>(shape: shape, units: units)
+    }
 
     /// Access a sub-tensor at the current dimension at index
     public subscript(index: Int) -> Element {
-            get {
+        get {
+            switch (Element.self) {
+            case is DataType:
+                return units[index] as! Element
+            case let a as Tensor<ElementRank>.Type:
                 let newTensorShape = dynamicShape.dropFirst()
                 let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
+                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize as Range
                 let newShape = Tensor.arrayToElementShape(Array(dynamicShape.dimensions.dropFirst()))
-                return Element(shape: newShape, units: ContiguousArray(units[range]))
+                let newUnits = ContiguousArray(units[range]) as! ContiguousArray<ElementRank.DataType>
+                return a.init(shape: newShape, units: newUnits) as! Element
+            default:
+                fatalError("Sub-tensor type unknown")
             }
-            set {
+        }
+        set {
+            switch (newValue) {
+            case let scalar as DataType:
+                units[index] = scalar
+            case let tensor as Tensor:
                 let newShape = dynamicShape.dropFirst()
                 let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-                units.replaceSubrange(range, with: newValue.units)
+                let range: Range<Int> = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
+                units.replaceSubrange(range, with: tensor.units)
+            default:
+                fatalError("Sub-tensor type unknown")
             }
+        }
     }
 
     public var count: Int {
@@ -288,10 +314,10 @@ extension Tensor where R.Shape == (UInt) {
     }
 }
 
-public typealias Tensor1D<T : TensorDataType> = Tensor<R1, T>
-public typealias Tensor2D<T : TensorDataType> = Tensor<R2, T>
-public typealias Tensor3D<T : TensorDataType> = Tensor<R3, T>
-public typealias Tensor4D<T : TensorDataType> = Tensor<R4, T>
+public typealias Tensor1D<T : TensorDataType> = Tensor<R1<T>>
+public typealias Tensor2D<T : TensorDataType> = Tensor<R2<T>>
+public typealias Tensor3D<T : TensorDataType> = Tensor<R3<T>>
+public typealias Tensor4D<T : TensorDataType> = Tensor<R4<T>>
 
 public typealias Vector<T : TensorDataType> = Tensor1D<T>
 public typealias Matrix<T : TensorDataType> = Tensor2D<T>

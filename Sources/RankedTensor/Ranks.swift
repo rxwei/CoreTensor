@@ -38,42 +38,56 @@ extension Float : TensorDataType {}
 extension Double : TensorDataType {}
 
 public protocol StaticRank {
+    associatedtype DataType : TensorDataType
     associatedtype Shape
+    associatedtype ElementTensor
     associatedtype ElementShape
-    associatedtype ElementRank : StaticRank where ElementRank.Shape == ElementShape
+    associatedtype ElementRank : StaticRank // where ElementRank.DataType == DataType // , ElementRank.DataType : TensorDataType
     static var rank: UInt { get }
 }
 
-public struct R0 : StaticRank {
+public struct R0<T : TensorDataType> : StaticRank {
+    public typealias DataType = T
     public typealias Shape = ()
+    public typealias ElementTensor = T
     public typealias ElementShape = ()
     public typealias ElementRank = R0
     public static var rank: UInt { return 0 }
 }
 
-public struct R1 : StaticRank {
+public struct R1<T : TensorDataType> : StaticRank {
+    public typealias DataType = T
     public typealias Shape = (UInt)
+    public typealias ElementTensor = T
     public typealias ElementShape = ()
+    // public typealias ElementRank = R0<T>
     public typealias ElementRank = R0
+
     public static var rank: UInt { return 1 }
 }
 
-public struct R2 : StaticRank {
+public struct R2<T : TensorDataType> : StaticRank {
+    public typealias DataType = T
     public typealias Shape = (UInt, UInt)
+    public typealias ElementTensor = Tensor<R1<T>>
     public typealias ElementShape = (UInt)
     public typealias ElementRank = R1
     public static var rank: UInt { return 2 }
 }
 
-public struct R3 : StaticRank {
+public struct R3<T : TensorDataType> : StaticRank {
+    public typealias DataType = T
     public typealias Shape = (UInt, UInt, UInt)
+    public typealias ElementTensor = Tensor<R2<T>>
     public typealias ElementShape = (UInt, UInt)
     public typealias ElementRank = R2
     public static var rank: UInt { return 3 }
 }
 
-public struct R4 : StaticRank {
+public struct R4<T : TensorDataType> : StaticRank {
+    public typealias DataType = T
     public typealias Shape = (UInt, UInt, UInt, UInt)
+    public typealias ElementTensor = Tensor<R3<T>>
     public typealias ElementShape = (UInt, UInt, UInt)
     public typealias ElementRank = R3
     public static var rank: UInt { return 4 }
