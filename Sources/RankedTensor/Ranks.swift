@@ -53,8 +53,8 @@ public struct R0 : StaticRank {
 
 public struct R1 : StaticRank {
     public typealias Shape = (UInt)
-    public typealias ElementShape = (UInt)
-    public typealias ElementRank = R1
+    public typealias ElementShape = ()
+    public typealias ElementRank = R0
     public static var rank: UInt { return 1 }
 }
 
