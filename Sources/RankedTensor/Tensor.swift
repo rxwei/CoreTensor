@@ -270,6 +270,7 @@ extension Tensor : RandomAccessCollection {
         }
     }
 
+    /// Returns the number of elements
     public var count: Int {
         return units.count / unitCountPerElement
     }
