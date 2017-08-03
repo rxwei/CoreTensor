@@ -359,7 +359,7 @@ extension Tensor where R.Shape == (UInt) {
         }
         set {
             precondition(!units.isEmpty, "Vector is empty")
-            units[0] = newValue
+            units[index] = newValue
         }
     }
 }

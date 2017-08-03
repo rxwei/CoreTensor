@@ -159,6 +159,11 @@ public extension TensorShape {
     func isSimilar(to other: TensorShape) -> Bool {
         return simplified() == other.simplified()
     }
+
+    /// Determine similarity between shapes
+    static func ~(lhs: TensorShape, rhs: TensorShape) -> Bool {
+        return lhs.isSimilar(to: rhs)
+    }
 }
 
 /// Determine similarity between shapes

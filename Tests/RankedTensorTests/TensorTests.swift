@@ -19,8 +19,6 @@
 
 import XCTest
 @testable import RankedTensor
-import struct CoreTensor.TensorIndex
-import struct CoreTensor.TensorShape
 
 class RankedTensorTests: XCTestCase {
 
