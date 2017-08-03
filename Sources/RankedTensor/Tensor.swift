@@ -227,12 +227,12 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var count: Int {
-        return units.count / unitCountPerElement
+        return units.count
     }
 
     /// Returns a sequence of tensor indices for scalar elements
     public var indices: CountableRange<Int> {
-        return 0..<count
+        return 0..<endIndex
     }
 
     public var startIndex: Int {
@@ -240,7 +240,7 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var endIndex: Int {
-        return count
+        return count / unitCountPerElement
     }
 
     /// Returns the index after the specified one in the current dimension
