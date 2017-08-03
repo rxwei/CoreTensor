@@ -17,7 +17,6 @@
 //  limitations under the License.
 //
 
-import struct CoreTensor.TensorIndex
 import struct CoreTensor.TensorShape
 
 public struct Tensor<R : StaticRank, DataType : TensorDataType> {
@@ -210,25 +209,6 @@ extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = Tensor<ElementRank, DataType>
 
-    /// Access a sub-tensor at index
-    /// BUG: rank of returned sub-tensor is not always `ElementRank`
-    public subscript(index: TensorIndex) -> Element {
-            get {
-                let newTensorShape = dynamicShape.dropFirst(index.count)
-                let contiguousIndex = index.contiguousIndex(in: dynamicShape)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize as Range
-                let newShape = Tensor.arrayToElementShape(Array(dynamicShape.dimensions.dropFirst()))
-                return Element(shape: newShape, units: ContiguousArray(units[range]))
-            }
-            set {
-                let newShape = dynamicShape.dropFirst(index.count)
-                precondition(newShape == newValue.dynamicShape, "Shape mismatch")
-                let contiguousIndex = index.contiguousIndex(in: dynamicShape)
-                let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-                units.replaceSubrange(range, with: newValue.units)
-            }
-    }
-
     /// Access a sub-tensor at the current dimension at index
     public subscript(index: Int) -> Element {
             get {
@@ -275,17 +255,6 @@ extension Tensor : RandomAccessCollection {
 }
 
 extension Tensor where R.Shape == (UInt) {
-    /// Access scalar element at index
-    public subscript(index: TensorIndex) -> DataType {
-        get {
-            return units[index.first ?? 0]
-        }
-        set {
-            precondition(!units.isEmpty, "Vector is empty")
-            units[0] = newValue
-        }
-    }
-
     /// Access scalar element at index
     public subscript(index: Int) -> DataType {
         get {
