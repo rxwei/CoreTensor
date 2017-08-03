@@ -42,7 +42,7 @@ public protocol StaticRank {
     associatedtype Shape
     associatedtype ElementTensor
     associatedtype ElementShape
-    associatedtype ElementRank : StaticRank // where ElementRank.DataType == DataType // , ElementRank.DataType : TensorDataType
+    associatedtype ElementRank : StaticRank
     static var rank: UInt { get }
 }
 
@@ -60,9 +60,7 @@ public struct R1<T : TensorDataType> : StaticRank {
     public typealias Shape = (UInt)
     public typealias ElementTensor = T
     public typealias ElementShape = ()
-    // public typealias ElementRank = R0<T>
-    public typealias ElementRank = R0
-
+    public typealias ElementRank = R0<T>
     public static var rank: UInt { return 1 }
 }
 
@@ -71,7 +69,7 @@ public struct R2<T : TensorDataType> : StaticRank {
     public typealias Shape = (UInt, UInt)
     public typealias ElementTensor = Tensor<R1<T>>
     public typealias ElementShape = (UInt)
-    public typealias ElementRank = R1
+    public typealias ElementRank = R1<T>
     public static var rank: UInt { return 2 }
 }
 
@@ -80,7 +78,7 @@ public struct R3<T : TensorDataType> : StaticRank {
     public typealias Shape = (UInt, UInt, UInt)
     public typealias ElementTensor = Tensor<R2<T>>
     public typealias ElementShape = (UInt, UInt)
-    public typealias ElementRank = R2
+    public typealias ElementRank = R2<T>
     public static var rank: UInt { return 3 }
 }
 
@@ -89,12 +87,6 @@ public struct R4<T : TensorDataType> : StaticRank {
     public typealias Shape = (UInt, UInt, UInt, UInt)
     public typealias ElementTensor = Tensor<R3<T>>
     public typealias ElementShape = (UInt, UInt, UInt)
-    public typealias ElementRank = R3
+    public typealias ElementRank = R3<T>
     public static var rank: UInt { return 4 }
 }
-
-public protocol NonScalarRank {}
-extension R1 : NonScalarRank {}
-extension R2 : NonScalarRank {}
-extension R3 : NonScalarRank {}
-extension R4 : NonScalarRank {}

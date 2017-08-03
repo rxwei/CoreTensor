@@ -34,9 +34,15 @@ public struct Tensor<R : StaticRank> {
     /// Tensor shape
     public var shape: Shape
 
+
+    /// The number of items (atom) in the tensor.
+    public var unitCount: Int {
+        return units.count
+    }
+
     /// The number of items (atoms) per element (sub-tensor).
     /// - Note: This holds the same value as the computed property
-    /// `shape.contiguousSize`, which is extremely frequently used.
+    /// `dynamicShape.contiguousSize`, which is extremely frequently used.
     /// We cache it in this variable whenever a new shape is set
     public private(set) var unitCountPerElement: Int
 
@@ -82,6 +88,8 @@ public struct Tensor<R : StaticRank> {
     }
 
     /// Initialize an empty tensor
+    /// - Note: there may be no need for such a constructor, in which case
+    /// it should be removed.
     public init() {
         var shapeArray = Array(repeating: 1, count: Int(R.rank))
         shapeArray[0] = 0
@@ -109,7 +117,6 @@ public extension Tensor {
         }
     }
 
-    // fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementShape {
     fileprivate static func arrayToElementShape(_ array: [Int]) -> ElementRank.Shape {
         var array = array
         return withUnsafePointer(to: &array[0]) { ptr in
@@ -138,7 +145,6 @@ public extension Tensor where R.DataType : Equatable {
 
     public func elementsEqual<A>(_ other: Tensor<A>) -> Bool
         where A.DataType == DataType {
-            // guard shape == other.shape else { return false }
             guard dynamicShape == other.dynamicShape else { return false }
             return units.elementsEqual(other.units)
     }
@@ -150,7 +156,6 @@ public extension Tensor where R.DataType : Equatable {
 }
 
 public extension Tensor {
-    // TODO: Fix `isSimilar` bug ('~' is not a binary operator)
     public func isSimilar<A>(to other: Tensor<A>) -> Bool
         where A.DataType == DataType {
             return dynamicShape.isSimilar(to: other.dynamicShape)
@@ -229,52 +234,44 @@ public extension Tensor {
     }
 }
 
-/// - TODO: Add conditional expressibility conformance in Swift 4
-// `extension Tensor : RandomAccessCollection where R : NonScalarRank { ... }`
-
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
-
-    public func createSubTensor(shape: ElementRank.Shape, units: ContiguousArray<ElementRank.DataType>)
-        -> Tensor<ElementRank> {
-            return Tensor<ElementRank>(shape: shape, units: units)
-    }
 
     /// Access a sub-tensor at the current dimension at index
     public subscript(index: Int) -> Element {
         get {
             switch (Element.self) {
-            case is DataType:
+            case is DataType.Type:
                 return units[index] as! Element
-            case let a as Tensor<ElementRank>.Type:
+            case is Tensor<ElementRank>.Type:
                 let newTensorShape = dynamicShape.dropFirst()
                 let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize as Range
+                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
                 let newShape = Tensor.arrayToElementShape(Array(dynamicShape.dimensions.dropFirst()))
                 let newUnits = ContiguousArray(units[range]) as! ContiguousArray<ElementRank.DataType>
-                return a.init(shape: newShape, units: newUnits) as! Element
+                return Tensor<ElementRank>(shape: newShape, units: newUnits) as! Element
             default:
-                fatalError("Sub-tensor type unknown")
+                fatalError("Invalid element tensor type")
             }
         }
         set {
             switch (newValue) {
             case let scalar as DataType:
                 units[index] = scalar
-            case let tensor as Tensor:
+            case let tensor as Tensor<ElementRank>:
                 let newShape = dynamicShape.dropFirst()
                 let contiguousIndex = unitIndex(fromIndex: index)
-                let range: Range<Int> = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
-                units.replaceSubrange(range, with: tensor.units)
+                let range = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
+                units.replaceSubrange(range, with: tensor.units as! ContiguousArray<DataType>)
             default:
-                fatalError("Sub-tensor type unknown")
+                fatalError("Invalid element tensor type")
             }
         }
     }
 
     public var count: Int {
-        return units.count
+        return units.count / unitCountPerElement
     }
 
     /// Returns a sequence of tensor indices for scalar elements
@@ -287,7 +284,7 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var endIndex: Int {
-        return count / unitCountPerElement
+        return count
     }
 
     /// Returns the index after the specified one in the current dimension
