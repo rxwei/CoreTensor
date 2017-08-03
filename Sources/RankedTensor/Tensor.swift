@@ -23,7 +23,6 @@ public struct Tensor<R : StaticRank> {
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
-    public typealias ElementShape = R.ElementShape
     public typealias ElementRank = R.ElementRank
 
     /// Tensor rank
@@ -86,15 +85,6 @@ public struct Tensor<R : StaticRank> {
         let units = ContiguousArray((0..<contiguousSize).map { _ in supplier() })
         self.init(shape: shape, units: units)
     }
-
-    /// Initialize an empty tensor
-    /// - Note: there may be no need for such a constructor, in which case
-    /// it should be removed.
-    public init() {
-        var shapeArray = Array(repeating: 1, count: Int(R.rank))
-        shapeArray[0] = 0
-        self.init(shape: Tensor.arrayToShape(shapeArray), repeating: DataType.base)
-    }
 }
 
 public extension Tensor {
@@ -127,11 +117,11 @@ public extension Tensor {
     }
 
     var dynamicShape: TensorShape {
-        return TensorShape(Tensor.shapeToArray(self.shape))
+        return TensorShape(Tensor.shapeToArray(shape))
     }
 
     var dynamicElementShape: TensorShape {
-        return TensorShape(Tensor.shapeToArray(self.shape).dropFirst())
+        return TensorShape(Tensor.shapeToArray(shape).dropFirst())
     }
 }
 
@@ -164,6 +154,7 @@ public extension Tensor {
     public func isIsomorphic<A>(to other: Tensor<A>) -> Bool
         where A.DataType == DataType {
             return dynamicShape == other.dynamicShape
+            // return Tensor.shapeToArray(shape) == Tensor.shapeToArray(other.shape)
     }
 }
 
@@ -312,10 +303,10 @@ extension Tensor where R.Shape == (UInt) {
     }
 }
 
-public typealias Tensor1D<T : TensorDataType> = Tensor<R1<T>>
-public typealias Tensor2D<T : TensorDataType> = Tensor<R2<T>>
-public typealias Tensor3D<T : TensorDataType> = Tensor<R3<T>>
-public typealias Tensor4D<T : TensorDataType> = Tensor<R4<T>>
+public typealias Tensor1D<T> = Tensor<R1<T>>
+public typealias Tensor2D<T> = Tensor<R2<T>>
+public typealias Tensor3D<T> = Tensor<R3<T>>
+public typealias Tensor4D<T> = Tensor<R4<T>>
 
-public typealias Vector<T : TensorDataType> = Tensor1D<T>
-public typealias Matrix<T : TensorDataType> = Tensor2D<T>
+public typealias Vector<T> = Tensor1D<T>
+public typealias Matrix<T> = Tensor2D<T>
