@@ -146,7 +146,7 @@ public extension Tensor where DataType : Equatable {
 public extension Tensor {
     // TODO: Fix `isSimilar` bug ('~' is not a binary operator)
     /*
-    public func isSimilar<A>(to other: Tensor<A>) -> Bool {
+    public func isSimilar<A>(to other: Tensor<A, DataType>) -> Bool {
         return dynamicShape ~ other.dynamicShape
     }
     */
@@ -279,13 +279,6 @@ extension Tensor : RangeReplaceableCollection {
     public mutating func replaceSubrange<C : Collection>
         (_ subrange: Range<Int>, with newElements: C) where C.Element == Element {
             let range = unitSubrange(from: subrange)
-            /*
-            let elemShape = elementShape
-            units.replaceSubrange(range, with: newElements.lazy.flatMap { elem -> ContiguousArray<DataType> in
-                precondition(elemShape == elem.shape, "Element shape mismatch")
-                return elem.units
-            })
-            */
             let elemShape = dynamicElementShape
             units.replaceSubrange(range, with: newElements.lazy.flatMap { elem -> ContiguousArray<DataType> in
                 precondition(elemShape == elem.dynamicShape, "Element shape mismatch")
