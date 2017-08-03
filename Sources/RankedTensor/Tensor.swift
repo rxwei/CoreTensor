@@ -57,7 +57,8 @@ public struct Tensor<R : StaticRank, DataType : TensorDataType> {
                      "The slice has fewer elements than required by the shape")
         self.shape = shape
         self.units = ContiguousArray(units)
-        self.unitCountPerElement = contiguousSize / shapeArray[0]
+        self.unitCountPerElement = shapeArray.count == 0 || shapeArray[0] == 0 ?
+            contiguousSize : contiguousSize / shapeArray[0]
     }
 
     /// Allocate and initialize a tensor to a repeated value
@@ -77,6 +78,13 @@ public struct Tensor<R : StaticRank, DataType : TensorDataType> {
         let units = ContiguousArray((0..<contiguousSize).map { _ in supplier() })
         self.init(shape: shape, units: units)
     }
+
+    /// Initialize an empty tensor
+    public init() {
+        var shapeArray = Array(repeating: 1, count: Int(R.rank))
+        shapeArray[0] = 0
+        self.init(shape: Tensor.arrayToShape(shapeArray), repeating: DataType.base)
+    }
 }
 
 public extension Tensor {
@@ -86,6 +94,15 @@ public extension Tensor {
             ptr.withMemoryRebound(to: UInt.self, capacity: 1) { ptr in
                 let buf = UnsafeBufferPointer(start: ptr, count: Int(R.rank))
                 return buf.lazy.map{Int($0)}
+            }
+        }
+    }
+
+    fileprivate static func arrayToShape(_ array: [Int]) -> Shape {
+        var array = array
+        return withUnsafePointer(to: &array[0]) { ptr in
+            ptr.withMemoryRebound(to: Shape.self, capacity: 1) { ptr in
+                return ptr.pointee
             }
         }
     }
@@ -101,6 +118,10 @@ public extension Tensor {
 
     var dynamicShape: TensorShape {
         return TensorShape(Tensor.shapeToArray(self.shape))
+    }
+
+    var dynamicElementShape: TensorShape {
+        return TensorShape(Tensor.shapeToArray(self.shape).dropFirst())
     }
 }
 
@@ -199,6 +220,89 @@ public extension Tensor {
     func unitSubrange(from tensorSubrange: Range<Int>) -> Range<Int> {
         return unitIndex(fromIndex: tensorSubrange.lowerBound)
             ..< unitIndex(fromIndex: tensorSubrange.upperBound)
+    }
+}
+
+internal extension RangeReplaceableRandomAccessSlice {
+    var baseRange: Range<Base.Index> {
+        return startIndex..<endIndex
+    }
+}
+
+public typealias TensorSlice<Rank, DataType> =
+    RangeReplaceableRandomAccessSlice<Tensor<Rank, DataType>>
+        where Rank : StaticRank, DataType : TensorDataType
+
+extension Tensor : RangeReplaceableCollection {
+    public typealias SubSequence = TensorSlice<R, DataType>
+
+    public mutating func append(_ newElement: Element) {
+        precondition(newElement.dynamicShape == dynamicElementShape, "Element shape mismatch")
+        reserveCapacity(count + 1)
+        units.append(contentsOf: newElement.units)
+    }
+
+    public mutating func reserveCapacity(_ minimumCapacity: Int) {
+        let cap = Swift.max(units.capacity, unitCountPerElement * minimumCapacity)
+        units.reserveCapacity(cap)
+    }
+
+    @discardableResult
+    public mutating func remove(at index: Int) -> Element {
+        precondition(indices.contains(index), "Index out of range")
+        let range = unitSubrange(from: index..<index+1)
+        defer { units.removeSubrange(range) }
+        return self[index]
+    }
+
+    public mutating func append<S : Sequence>(contentsOf newElements: S)
+        where S.Iterator.Element == Element {
+            for element in newElements {
+                append(element)
+            }
+    }
+
+    public mutating func append<C : Collection>(contentsOf newElements: C)
+        where C.Iterator.Element == Element, C.IndexDistance == Int {
+            reserveCapacity(count + newElements.count)
+            for element in newElements {
+                append(element)
+            }
+    }
+
+    public mutating func append(contentsOf newElements: Tensor) {
+        precondition(newElements.dynamicShape == dynamicShape, "Element shape mismatch")
+        reserveCapacity(count + newElements.count)
+        units.append(contentsOf: newElements.units)
+    }
+
+    public mutating func replaceSubrange<C : Collection>
+        (_ subrange: Range<Int>, with newElements: C) where C.Element == Element {
+            let range = unitSubrange(from: subrange)
+            /*
+            let elemShape = elementShape
+            units.replaceSubrange(range, with: newElements.lazy.flatMap { elem -> ContiguousArray<DataType> in
+                precondition(elemShape == elem.shape, "Element shape mismatch")
+                return elem.units
+            })
+            */
+            let elemShape = dynamicElementShape
+            units.replaceSubrange(range, with: newElements.lazy.flatMap { elem -> ContiguousArray<DataType> in
+                precondition(elemShape == elem.dynamicShape, "Element shape mismatch")
+                return elem.units
+            })
+    }
+
+    public subscript(bounds: Range<Int>) -> TensorSlice<R, DataType> {
+        get {
+            return RangeReplaceableRandomAccessSlice(base: self, bounds: bounds)
+        }
+        set {
+            precondition(newValue.base.dynamicShape == dynamicElementShape,
+                         "Element shape mismatch")
+            units[unitSubrange(from: bounds)] =
+                newValue.base.units[newValue.base.unitSubrange(from: newValue.baseRange)]
+        }
     }
 }
 

@@ -20,7 +20,15 @@
 public protocol TensorDataType {
     /// - TODO: Add dynamic (DLVM IR) type getters
     /// as requirements
+    static var base: Self { get }
 }
+
+extension TensorDataType where Self : ExpressibleByIntegerLiteral {
+    public static var base: Self {
+        return 0
+    }
+}
+
 extension Int8 : TensorDataType {}
 extension Int16 : TensorDataType {}
 extension Int32 : TensorDataType {}
