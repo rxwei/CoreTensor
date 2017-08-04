@@ -21,24 +21,18 @@ public protocol StaticRank {
     associatedtype DataType
     associatedtype Shape
     associatedtype ElementTensor
-    associatedtype ElementRank : StaticRank
     static var rank: UInt { get }
 }
 
-/// Dummy defined to satisfy R1.ElementRank, should never be used
-public struct R0<T> : StaticRank {
-    public typealias DataType = T
-    public typealias Shape = ()
-    public typealias ElementTensor = T
-    public typealias ElementRank = R0
-    public static var rank: UInt { return 0 }
-}
+public typealias Shape1D = (UInt)
+public typealias Shape2D = (UInt, UInt)
+public typealias Shape3D = (UInt, UInt, UInt)
+public typealias Shape4D = (UInt, UInt, UInt, UInt)
 
 public struct R1<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = (UInt)
     public typealias ElementTensor = T
-    public typealias ElementRank = R0<T>
     public static var rank: UInt { return 1 }
 }
 
@@ -46,7 +40,6 @@ public struct R2<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = (UInt, UInt)
     public typealias ElementTensor = Tensor<R1<T>>
-    public typealias ElementRank = R1<T>
     public static var rank: UInt { return 2 }
 }
 
@@ -54,7 +47,6 @@ public struct R3<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = (UInt, UInt, UInt)
     public typealias ElementTensor = Tensor<R2<T>>
-    public typealias ElementRank = R2<T>
     public static var rank: UInt { return 3 }
 }
 
@@ -62,6 +54,5 @@ public struct R4<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = (UInt, UInt, UInt, UInt)
     public typealias ElementTensor = Tensor<R3<T>>
-    public typealias ElementRank = R3<T>
     public static var rank: UInt { return 4 }
 }
