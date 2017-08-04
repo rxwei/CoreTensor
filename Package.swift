@@ -1,3 +1,4 @@
+// swift-tools-version:4.0
 //
 //  Package.swift
 //  CoreTensor
@@ -22,8 +23,10 @@ import PackageDescription
 let package = Package(
     name: "CoreTensor",
     targets: [
-        Target(name: "CoreTensor"),
+        .target(name: "CoreTensor"),
+        .target(name: "RankedTensor", dependencies: ["CoreTensor"]),
+        .testTarget(name: "CoreTensorTests", dependencies: ["CoreTensor"]),
+        .testTarget(name: "RankedTensorTests", dependencies: ["RankedTensor"])
     ],
-    dependencies: [
-    ]
+    swiftLanguageVersions: [ 4 ]
 )
