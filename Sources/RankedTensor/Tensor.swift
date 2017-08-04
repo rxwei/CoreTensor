@@ -101,6 +101,12 @@ public extension Tensor {
     }
 }
 
+public extension Tensor where R.Shape == Shape2D {
+    fileprivate func getElementShape() -> Shape1D {
+        return arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
+    }
+}
+
 /// - TODO: Add conditional expressibility conformance in Swift 4
 
 public extension Tensor where R.DataType : Equatable {
@@ -200,7 +206,6 @@ public extension Tensor {
     }
 }
 
-
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
@@ -209,8 +214,13 @@ extension Tensor : RandomAccessCollection {
     fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
         let elementTensorShape = dynamicShape.dropFirst()
         let contiguousIndex = unitIndex(fromIndex: index)
-        let range = contiguousIndex..<contiguousIndex+elementTensorShape.contiguousSize
-        return range
+        return contiguousIndex..<contiguousIndex+elementTensorShape.contiguousSize
+    }
+
+    /// Get element tensor units at index
+    fileprivate func getElementTensorUnits(index: Int) -> ContiguousArray<DataType> {
+        let range = getElementTensorRange(index: index)
+        return ContiguousArray(units[range])
     }
 
     /// Access the scalar element or element tensor at index
@@ -220,17 +230,17 @@ extension Tensor : RandomAccessCollection {
             case is DataType.Type:
                 return units[index] as! Element
             case is Tensor1D<DataType>.Type:
-                let newShape: Shape1D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
-                return Tensor1D<DataType>(shape: newShape, units: newUnits) as! Element
+                let elementShape: Shape1D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
+                let elementUnits = getElementTensorUnits(index: index)
+                return Tensor1D<DataType>(shape: elementShape, units: elementUnits) as! Element
             case is Tensor2D<DataType>.Type:
-                let newShape: Shape2D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
-                return Tensor2D<DataType>(shape: newShape, units: newUnits) as! Element
+                let elementShape: Shape2D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
+                let elementUnits = getElementTensorUnits(index: index)
+                return Tensor2D<DataType>(shape: elementShape, units: elementUnits) as! Element
             case is Tensor3D<DataType>.Type:
-                let newShape: Shape3D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
-                return Tensor3D<DataType>(shape: newShape, units: newUnits) as! Element
+                let elementShape: Shape3D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
+                let elementUnits = getElementTensorUnits(index: index)
+                return Tensor3D<DataType>(shape: elementShape, units: elementUnits) as! Element
             default:
                 fatalError("Invalid element tensor type")
             }
