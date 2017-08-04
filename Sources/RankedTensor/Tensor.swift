@@ -99,37 +99,6 @@ public extension Tensor {
     var dynamicShape: TensorShape {
         return TensorShape(Tensor.shapeToArray(shape))
     }
-
-    var dynamicElementShape: TensorShape {
-        return TensorShape(Tensor.shapeToArray(shape).dropFirst())
-    }
-}
-
-fileprivate func arrayToShape(_ array: [Int]) -> Shape1D {
-    var array = array
-    return withUnsafePointer(to: &array[0]) { ptr in
-        ptr.withMemoryRebound(to: Shape1D.self, capacity: 1) { ptr in
-            return ptr.pointee
-        }
-    }
-}
-
-fileprivate func arrayToShape(_ array: [Int]) -> Shape2D {
-    var array = array
-    return withUnsafePointer(to: &array[0]) { ptr in
-        ptr.withMemoryRebound(to: Shape2D.self, capacity: 1) { ptr in
-            return ptr.pointee
-        }
-    }
-}
-
-fileprivate func arrayToShape(_ array: [Int]) -> Shape3D {
-    var array = array
-    return withUnsafePointer(to: &array[0]) { ptr in
-        ptr.withMemoryRebound(to: Shape3D.self, capacity: 1) { ptr in
-            return ptr.pointee
-        }
-    }
 }
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
@@ -161,7 +130,6 @@ public extension Tensor {
     public func isIsomorphic<A>(to other: Tensor<A>) -> Bool
         where A.DataType == DataType {
             return dynamicShape == other.dynamicShape
-            // return Tensor.shapeToArray(shape) == Tensor.shapeToArray(other.shape)
     }
 }
 
@@ -237,32 +205,31 @@ extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
 
-    /// Access a sub-tensor at the current dimension at index
+    /// Get range of unit indices corresponding to an element index
+    fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
+        let elementTensorShape = dynamicShape.dropFirst()
+        let contiguousIndex = unitIndex(fromIndex: index)
+        let range = contiguousIndex..<contiguousIndex+elementTensorShape.contiguousSize
+        return range
+    }
+
+    /// Access the scalar element or element tensor at index
     public subscript(index: Int) -> Element {
         get {
             switch (Element.self) {
             case is DataType.Type:
                 return units[index] as! Element
             case is Tensor1D<DataType>.Type:
-                let newTensorShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
                 let newShape: Shape1D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[range])
+                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
                 return Tensor1D<DataType>(shape: newShape, units: newUnits) as! Element
             case is Tensor2D<DataType>.Type:
-                let newTensorShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
                 let newShape: Shape2D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[range])
+                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
                 return Tensor2D<DataType>(shape: newShape, units: newUnits) as! Element
             case is Tensor3D<DataType>.Type:
-                let newTensorShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = contiguousIndex..<contiguousIndex+newTensorShape.contiguousSize
                 let newShape: Shape3D = arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
-                let newUnits = ContiguousArray(units[range])
+                let newUnits = ContiguousArray(units[getElementTensorRange(index: index)])
                 return Tensor3D<DataType>(shape: newShape, units: newUnits) as! Element
             default:
                 fatalError("Invalid element tensor type")
@@ -273,20 +240,11 @@ extension Tensor : RandomAccessCollection {
             case let scalar as DataType:
                 units[index] = scalar
             case let tensor as Tensor1D<DataType>:
-                let newShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
-                units.replaceSubrange(range, with: tensor.units)
+                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             case let tensor as Tensor2D<DataType>:
-                let newShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
-                units.replaceSubrange(range, with: tensor.units)
+                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             case let tensor as Tensor3D<DataType>:
-                let newShape = dynamicShape.dropFirst()
-                let contiguousIndex = unitIndex(fromIndex: index)
-                let range = Range(contiguousIndex..<contiguousIndex+newShape.contiguousSize)
-                units.replaceSubrange(range, with: tensor.units)
+                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             default:
                 fatalError("Invalid element tensor type")
             }
@@ -298,7 +256,7 @@ extension Tensor : RandomAccessCollection {
         return units.count / unitCountPerElement
     }
 
-    /// Returns a sequence of tensor indices for scalar elements
+    /// Returns a sequence of indices for elements
     public var indices: CountableRange<Int> {
         return 0..<endIndex
     }
@@ -321,7 +279,6 @@ extension Tensor : RandomAccessCollection {
         return i - 1
     }
 }
-
 
 public typealias Tensor1D<T> = Tensor<R1<T>>
 public typealias Tensor2D<T> = Tensor<R2<T>>

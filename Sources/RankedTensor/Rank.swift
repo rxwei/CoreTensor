@@ -24,14 +24,9 @@ public protocol StaticRank {
     static var rank: UInt { get }
 }
 
-public typealias Shape1D = (UInt)
-public typealias Shape2D = (UInt, UInt)
-public typealias Shape3D = (UInt, UInt, UInt)
-public typealias Shape4D = (UInt, UInt, UInt, UInt)
-
 public struct R1<T> : StaticRank {
     public typealias DataType = T
-    public typealias Shape = (UInt)
+    public typealias Shape = Shape1D
     public typealias ElementTensor = T
     public static var rank: UInt { return 1 }
 }
