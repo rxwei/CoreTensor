@@ -210,14 +210,14 @@ extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
 
-    /// Get range of unit indices corresponding to an element index
+    /// Get indices corresponding to the units of the element tensor at index
     fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
         let elementTensorShape = dynamicShape.dropFirst()
         let contiguousIndex = unitIndex(fromIndex: index)
         return contiguousIndex..<contiguousIndex+elementTensorShape.contiguousSize
     }
 
-    /// Get element tensor units at index
+    /// Get units in the element tensor at index
     fileprivate func getElementTensorUnits(index: Int) -> ContiguousArray<DataType> {
         let range = getElementTensorRange(index: index)
         return ContiguousArray(units[range])
