@@ -56,10 +56,10 @@ class CoreTensorTests: XCTestCase {
                                               unitsIncreasingFrom: 0))
         tensor.append(contentsOf: Tensor<Int>(shape: [3, 4, 3],
                                               unitsIncreasingFrom: 0))
-        XCTAssertEqual(tensor.units, ContiguousArray((0..<24).map{$0} + (0..<36).map{$0}))
+        XCTAssertEqual(tensor.units, ContiguousArray((0..<24).map {$0} + (0..<36).map {$0}))
 
         let scalars = Tensor<Int>(scalarElementsIn: 0..<10)
-        XCTAssertEqual(scalars.units, ContiguousArray((0..<10).map{$0}))
+        XCTAssertEqual(scalars.units, ContiguousArray((0..<10).map {$0}))
         for (i, scalar) in scalars.enumerated() {
             XCTAssertEqual(scalar.unitCount, 1)
             XCTAssertEqual(scalar.units.first, i)
@@ -88,8 +88,8 @@ class CoreTensorTests: XCTestCase {
         let rank1: Tensor<Int> = Tensor(shape: [5], units: [1, 2, 3, 4, 5])
         let rank2 = Tensor<Int>(shape: [2, 3], units: [1, 2, 3,
                                                        4, 5, 6])
-        let rank3 = Tensor<Int>(shape: [2, 3, 2], units: [1, 2,  3, 4,   5, 6,
-                                                          7, 8,  9, 10,  11, 12])
+        let rank3 = Tensor<Int>(shape: [2, 3, 2], units: [1, 2, 3, 4, 5, 6,
+                                                          7, 8, 9, 10, 11, 12])
         XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
         XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
         XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
@@ -101,7 +101,7 @@ class CoreTensorTests: XCTestCase {
             tensor.multiplyUnit(at: i, by: i)
             tensor.incrementUnit(at: i, by: 1)
         }
-        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map{$0}))
+        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map {$0}))
     }
 
     func testAssignment() {
@@ -123,7 +123,37 @@ class CoreTensorTests: XCTestCase {
         XCTAssertEqual(trans.units, [1, 4, 2, 5, 3, 6])
     }
 
-    static var allTests : [(String, (CoreTensorTests) -> () throws -> Void)] {
+    func testSlice() {
+        let matrix = Tensor<Int>(shape: [4, 3], unitsIncreasingFrom: 0)
+        let midpoint = matrix.count / 2
+        let firstHalf = matrix[..<midpoint]
+        let secondHalf = matrix[midpoint...]
+
+        // Test indices
+        // Check firstHalf.indices == (0..<2)
+        XCTAssertEqual(firstHalf.indices.startIndex, 0)
+        XCTAssertEqual(firstHalf.indices.endIndex, midpoint)
+        // Check secondHalf.indices == (2...4)
+        XCTAssertEqual(secondHalf.indices.startIndex, midpoint)
+        XCTAssertEqual(secondHalf.indices.endIndex, matrix.count)
+
+        // Test element equality
+        XCTAssertEqual(firstHalf.units, matrix.units[..<6])
+        XCTAssertEqual(secondHalf.units, matrix.units[6...])
+    }
+
+    /*
+    func testSlice() {
+        var matrix = Tensor<Int>(shape: [2, 3], units: [1, 2, 3, 4, 5, 6])
+        let b = matrix[0..<1]
+        let c = matrix[1..<2]
+        XCTAssertEqual(b.units, [1, 2, 3])
+        matrix.incrementUnit(at: 0, by: 5)
+        XCTAssertEqual(b.units, [6, 2, 3])
+    }
+     */
+
+    static var allTests: [(String, (CoreTensorTests) -> () throws -> Void)] {
         return [
             ("testIndexCalculation", testIndexCalculation),
             ("testAddressing", testAddressing),

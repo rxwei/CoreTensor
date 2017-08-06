@@ -83,7 +83,7 @@ class RankedTensorTests: XCTestCase {
         XCTAssertEqual(tensor.units, ContiguousArray((1...60)))
     }
 
-    static var allTests : [(String, (RankedTensorTests) -> () throws -> Void)] {
+    static var allTests: [(String, (RankedTensorTests) -> () throws -> Void)] {
         return [
             ("testInit", testInit),
             ("testRanks", testRanks),
@@ -94,4 +94,3 @@ class RankedTensorTests: XCTestCase {
     }
 
 }
-

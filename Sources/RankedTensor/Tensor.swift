@@ -19,7 +19,7 @@
 
 import struct CoreTensor.TensorShape
 
-public struct Tensor<R : StaticRank> {
+public struct Tensor<R: StaticRank> {
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
@@ -91,7 +91,7 @@ public extension Tensor {
         return withUnsafePointer(to: &shape) { ptr in
             ptr.withMemoryRebound(to: UInt.self, capacity: 1) { ptr in
                 let buf = UnsafeBufferPointer(start: ptr, count: Int(R.rank))
-                return buf.lazy.map{Int($0)}
+                return buf.lazy.map {Int($0)}
             }
         }
     }
