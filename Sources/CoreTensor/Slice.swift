@@ -222,15 +222,16 @@ public extension TensorSlice {
 public extension TensorSlice where UnitType : Equatable {
 
     public static func ==(lhs: TensorSlice<UnitType>, rhs: TensorSlice<UnitType>) -> Bool {
-        return lhs.base == rhs.base
+        return lhs.elementsEqual(rhs)
     }
 
     public func elementsEqual(_ other: TensorSlice<UnitType>) -> Bool {
-        return base.elementsEqual(other.base)
+        guard shape == other.shape else { return false }
+        return shape.elementsEqual(other.shape) && units.elementsEqual(other.units)
     }
 
     public func unitsEqual(_ other: TensorSlice<UnitType>) -> Bool {
-        return base.unitsEqual(other.base)
+        return units.elementsEqual(other.units)
     }
 
 }
