@@ -44,7 +44,7 @@ public extension TensorSlice {
     }
 
     var isScalar: Bool {
-        return base.isScalar
+        return indexingDepth == base.shape.count
     }
 
     /// The number of units per element
@@ -139,6 +139,26 @@ public extension TensorSlice {
                      "Element index is out of bounds")
         self.base = base.base
         self.baseIndices = base.baseIndices + [index]
+        self.bounds = nil
+    }
+
+    init(base: Tensor<UnitType>, indices: [Int]) {
+        precondition(!base.isScalar,
+                     "A scalar has no elements")
+        precondition(zip(base.shape, indices).filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+                     "Element indices are out of bounds")
+        self.base = base
+        self.baseIndices = indices
+        self.bounds = nil
+    }
+
+    init(base: TensorSlice<UnitType>, indices: [Int]) {
+        precondition(!base.isScalar,
+                     "A scalar has no elements")
+        precondition(zip(base.shape, indices).filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+                     "Element indices are out of bounds")
+        self.base = base.base
+        self.baseIndices = base.baseIndices + indices
         self.bounds = nil
     }
 
@@ -265,6 +285,37 @@ extension TensorSlice : RandomAccessCollection {
     public typealias Element = TensorSlice<UnitType>
     public typealias SubSequence = TensorSlice<UnitType>
 
+    /// Access the element tensor specified by a TensorIndex
+    public subscript(index: TensorIndex) -> TensorSlice<UnitType> {
+        get {
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst(index.count)
+            let contiguousIndex = index.contiguousIndex(in: shape)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            return TensorSlice(base: self, bounds: range)
+        }
+        set {
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst(index.count)
+            precondition(newShape == newValue.shape, "Shape mismatch")
+            let contiguousIndex = index.contiguousIndex(in: shape)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            base.units.replaceSubrange(range, with: newValue.units)
+        }
+    }
+
+    /// Access the element tensor specified by a list of dimensional indices
+    /// - parameter indices: tensor indices
+    /// - note: the count of indices must equal the raw rank of the tensor
+    public subscript(indices: Int...) -> TensorSlice<UnitType> {
+        get {
+            return self[TensorIndex(indices)]
+        }
+        set {
+            self[TensorIndex(indices)] = newValue
+        }
+    }
+
     /// Access the element tensor in the current dimension at an index
     public subscript(index: Int) -> Element {
         get {
@@ -281,7 +332,7 @@ extension TensorSlice : RandomAccessCollection {
         }
     }
 
-    /// Access the sub-tensor spanning a contiguous range of indices
+    /// Access the sub-tensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
@@ -294,5 +345,14 @@ extension TensorSlice : RandomAccessCollection {
             base.units[unitSubrange(from: CountableRange(bounds))] =
                 newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
         }
+    }
+}
+
+extension TensorSlice : TextOutputStreamable {
+    public func write<Target>(to target: inout Target) where Target : TextOutputStream {
+        target.write(
+            isScalar ? String(describing: units.first!)
+                : "[\(map {"\($0)"}.joined(separator: ", "))]"
+        )
     }
 }

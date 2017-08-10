@@ -156,7 +156,7 @@ class CoreTensorTests: XCTestCase {
         return [
             ("testIndexCalculation", testIndexCalculation),
             ("testAddressing", testAddressing),
-            // ("testInit", testInit),
+            ("testInit", testInit),
             ("testTextOutput", testTextOutput),
             ("testEquality", testEquality),
             ("testMutating", testMutating),
