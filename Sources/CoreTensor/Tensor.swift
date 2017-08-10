@@ -163,6 +163,11 @@ public struct Tensor<DataType> : TensorProtocol {
         self.init(shape: shape, units: units)
     }
 
+    /// Initialize a tensor from a TensorSlice
+    public init(_ slice: TensorSlice<UnitType>) {
+        self.init(elementShape: slice.elementShape, units: ContiguousArray(slice.units))
+    }
+
 }
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
