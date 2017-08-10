@@ -1,8 +1,8 @@
 //
-//  Tensor.swift
+//  Slice.swift
 //  CoreTensor
 //
-//  Copyright 2016-2017 Richard Wei.
+//  Copyright 2016-2017 DLVM Team.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,10 +17,9 @@
 //  limitations under the License.
 //
 
-/// Tensor
+/// TensorSlice
 public struct TensorSlice<UnitType> : TensorProtocol {
     public typealias Base = Tensor<UnitType>
-    public typealias Element = TensorSlice<UnitType>
 
     public private(set) var base: Base
     private var baseIndices: [Int]
@@ -42,10 +41,6 @@ public extension TensorSlice {
             }
             return baseElemShape.dropFirst(indexingDepth)
         }
-    }
-
-    var shape: TensorShape {
-        return elementShape?.prepending(count) ?? .scalar
     }
 
     var isScalar: Bool {
@@ -74,10 +69,6 @@ public extension TensorSlice {
         }
         let range = start..<end
         return base.units[range]
-    }
-
-    var unitCount: Int {
-        return count * base.unitCountPerElement
     }
 
     var indices: CountableRange<Int> {
@@ -270,29 +261,11 @@ extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteg
 
 extension TensorSlice : RandomAccessCollection {
     public typealias Index = Int
+    public typealias Element = TensorSlice<UnitType>
     public typealias SubSequence = TensorSlice<UnitType>
 
-    /// Access a sub-tensor at index
-    public subscript(index: TensorIndex) -> TensorSlice<UnitType> {
-        get {
-            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
-            let newShape = shape.dropFirst(index.count)
-            let contiguousIndex = index.contiguousIndex(in: shape)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return TensorSlice(base: self, bounds: range)
-        }
-        set {
-            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
-            let newShape = shape.dropFirst(index.count)
-            precondition(newShape == newValue.shape, "Shape mismatch")
-            let contiguousIndex = index.contiguousIndex(in: shape)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            base.units.replaceSubrange(range, with: newValue.units)
-        }
-    }
-
-    /// Access the element tensor at the current dimension at an index
-    public subscript(index: Int) -> TensorSlice<UnitType> {
+    /// Access the element tensor in the current dimension at an index
+    public subscript(index: Int) -> Element {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
             return TensorSlice(base: self, index: index)
@@ -307,6 +280,7 @@ extension TensorSlice : RandomAccessCollection {
         }
     }
 
+    /// Access the sub-tensor spanning a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")

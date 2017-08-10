@@ -1,6 +1,6 @@
 //
-//  Ranks.swift
-//  CoreTensor
+//  Shape.swift
+//  RankedTensor
 //
 //  Copyright 2016-2017 DLVM Team.
 //

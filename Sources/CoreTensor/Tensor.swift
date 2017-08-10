@@ -2,7 +2,7 @@
 //  Tensor.swift
 //  CoreTensor
 //
-//  Copyright 2016-2017 Richard Wei.
+//  Copyright 2016-2017 DLVM Team.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ public protocol TensorProtocol: RandomAccessCollection
     var unitCountPerElement: IndexDistance { get }
     var elementShape: TensorShape? { get }
     subscript(index: Index) -> TensorSlice<UnitType> { get }
-    subscript(index: TensorIndex) -> TensorSlice<UnitType> { get }
 }
 
 public extension TensorProtocol {
@@ -42,10 +41,6 @@ public extension TensorProtocol {
 
     func unit(at index: Int) -> UnitType {
         return units[units.startIndex.advanced(by: index)]
-    }
-
-    func unit(at index: TensorIndex) -> UnitType {
-        return self[index].units[0]
     }
 }
 
@@ -64,7 +59,6 @@ internal extension TensorProtocol {
 public struct Tensor<DataType> : TensorProtocol {
     public typealias UnitType = DataType
     public typealias UnitSequenceType = ContiguousArray<UnitType>
-    public typealias Element = TensorSlice<UnitType>
 
     /// Sub-tensor (element) shape
     public let elementShape: TensorShape?
@@ -267,41 +261,11 @@ public extension Tensor where UnitType : FloatingPoint {
 
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
+    public typealias Element = TensorSlice<UnitType>
     public typealias SubSequence = TensorSlice<UnitType>
 
-    /// Access a sub-tensor at index
-    public subscript(index: TensorIndex) -> TensorSlice<UnitType> {
-        get {
-            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
-            let newShape = shape.dropFirst(index.count)
-            let contiguousIndex = index.contiguousIndex(in: shape)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return TensorSlice(base: self, bounds: range)
-        }
-        set {
-            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
-            let newShape = shape.dropFirst(index.count)
-            precondition(newShape == newValue.shape, "Shape mismatch")
-            let contiguousIndex = index.contiguousIndex(in: shape)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            units.replaceSubrange(range, with: newValue.units)
-        }
-    }
-
-    /// Access a sub-tensor at an index specified by a list of dimensional indices
-    /// - parameter indices: tensor indices
-    /// - note: the count of indices must equal the raw rank of the tensor
-    public subscript(indices: Int...) -> TensorSlice<UnitType> {
-        get {
-            return self[TensorIndex(indices)]
-        }
-        set {
-            self[TensorIndex(indices)] = newValue
-        }
-    }
-
-    /// Access the element tensor at the current dimension at an index
-    public subscript(index: Int) -> TensorSlice<UnitType> {
+    /// Access the element tensor in the current dimension at an index
+    public subscript(index: Int) -> Element {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
             return TensorSlice(base: self, index: index)
@@ -316,6 +280,7 @@ extension Tensor : RandomAccessCollection {
         }
     }
 
+    /// Access the sub-tensor spanning a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar,
