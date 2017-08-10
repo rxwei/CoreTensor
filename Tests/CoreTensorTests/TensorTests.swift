@@ -51,13 +51,6 @@ class CoreTensorTests: XCTestCase {
         let highScalar = scalar.reshaped(as: [1, 1, 1])!
         XCTAssertTrue(highScalar.shape ~ .scalar)
 
-        var tensor = Tensor<Int>(elementShape: [4, 3])
-        tensor.append(contentsOf: Tensor<Int>(shape: [2, 4, 3],
-                                              unitsIncreasingFrom: 0))
-        tensor.append(contentsOf: Tensor<Int>(shape: [3, 4, 3],
-                                              unitsIncreasingFrom: 0))
-        XCTAssertEqual(tensor.units, ContiguousArray((0..<24).map {$0} + (0..<36).map {$0}))
-
         let scalars = Tensor<Int>(scalarElementsIn: 0..<10)
         XCTAssertEqual(scalars.units, ContiguousArray((0..<10).map {$0}))
         for (i, scalar) in scalars.enumerated() {

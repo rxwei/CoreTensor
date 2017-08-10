@@ -37,7 +37,10 @@ public extension TensorSlice {
     /// Shape of element tensors
     var elementShape: TensorShape? {
         return base.elementShape.flatMap { baseElemShape in
-            baseElemShape.dropFirst(indexingDepth - 1)
+            if baseElemShape.rank + 1 == indexingDepth {
+                return nil
+            }
+            return baseElemShape.dropFirst(indexingDepth)
         }
     }
 
@@ -55,9 +58,29 @@ public extension TensorSlice {
     }
 
     var units: ArraySlice<UnitType> {
-        return bounds.flatMap { bounds in
-            base.units[base.unitSubrange(from: bounds)]
-        } ?? ArraySlice(base.units)
+        var unitCountPerElement = base.unitCountPerElement
+        var start = 0
+        var end = base.unitCount - 1
+        if !baseIndices.isEmpty, var elementShape = base.elementShape {
+            elementShape.dimensions +=
+                Array(repeating: 1, count: Swift.max(0, baseIndices.count - elementShape.rank))
+            let zipped = zip(baseIndices, elementShape)
+            for (n, (index, dimSize)) in zipped.enumerated() {
+                start += unitCountPerElement * index
+                if n < baseIndices.count - 1 {
+                    unitCountPerElement /= dimSize
+                }
+            }
+            end = start+unitCountPerElement
+            unitCountPerElement /= elementShape[indexingDepth - 1]
+        }
+        if let bounds = bounds {
+            let temp = start
+            start = temp + bounds.startIndex * unitCountPerElement
+            end = temp + bounds.endIndex * unitCountPerElement
+        }
+        let range = start..<end
+        return base.units[range]
     }
 
     var unitCount: Int {
@@ -65,7 +88,12 @@ public extension TensorSlice {
     }
 
     var indices: CountableRange<Int> {
-        return bounds ?? 0..<0
+        if let bounds = bounds {
+            return bounds
+        } else if indexingDepth < base.shape.rank {
+            return 0..<(base.shape[indexingDepth])
+        }
+        return 0..<0
     }
 
     var startIndex: Int {
@@ -85,10 +113,49 @@ public extension TensorSlice {
 public extension TensorSlice {
 
     init(base: Tensor<UnitType>, bounds: CountableRange<Int>?) {
-        precondition(!(isScalar && bounds != nil),
+        precondition(!(base.isScalar && bounds != nil),
                      "Slices of a scalar cannot have bounds")
+        if let bounds = bounds {
+            precondition(base.indices ~= bounds.startIndex
+                         && base.indices ~= bounds.endIndex - 1,
+                         "Slice is out of bounds")
+        }
         self.base = base
+        self.baseIndices = []
         self.bounds = bounds
+    }
+
+    init(base: TensorSlice<UnitType>, bounds: CountableRange<Int>?) {
+        precondition(!(base.isScalar && bounds != nil),
+                     "Slices of a scalar cannot have bounds")
+        if let bounds = bounds {
+            precondition(base.indices ~= bounds.startIndex
+                         && base.indices ~= bounds.endIndex - 1,
+                         "Slice is out of bounds")
+        }
+        self.base = base.base
+        self.baseIndices = base.baseIndices
+        self.bounds = bounds
+    }
+
+    init(base: Tensor<UnitType>, index: Int) {
+        precondition(!base.isScalar,
+                     "A scalar has no elements")
+        precondition(base.indices ~= index,
+                     "Element index is out of bounds")
+        self.base = base
+        self.baseIndices = [index]
+        self.bounds = nil
+    }
+
+    init(base: TensorSlice<UnitType>, index: Int) {
+        precondition(!base.isScalar,
+                     "A scalar has no elements")
+        precondition(base.indices ~= index,
+                     "Element index is out of bounds")
+        self.base = base.base
+        self.baseIndices = base.baseIndices + [index]
+        self.bounds = nil
     }
 
     internal init(elementShape: TensorShape?, units: ContiguousArray<UnitType>) {
@@ -123,8 +190,7 @@ public extension TensorSlice {
 
     /// Initialize a tensor from a sequence of tensors of element shape
     public init<S: Sequence>(elementShape: TensorShape, elements: S)
-        where S.Iterator.Element : TensorProtocol
-    {
+        where S.Element : TensorProtocol, S.Element.UnitType == UnitType {
         let newBase = Tensor<UnitType>(elementShape: elementShape,
                                        elements: elements)
         self.init(base: newBase, bounds: newBase.indices)
@@ -209,4 +275,60 @@ extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteg
 
 }
 
+extension TensorSlice : RandomAccessCollection {
+    public typealias Index = Int
+    public typealias SubSequence = TensorSlice<UnitType>
 
+    /// Access a sub-tensor at index
+    public subscript(index: TensorIndex) -> TensorSlice<UnitType> {
+        get {
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst(index.count)
+            let contiguousIndex = index.contiguousIndex(in: shape)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            return TensorSlice(base: self, bounds: range)
+        }
+        set {
+            precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst(index.count)
+            precondition(newShape == newValue.shape, "Shape mismatch")
+            let contiguousIndex = index.contiguousIndex(in: shape)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            base.units.replaceSubrange(range, with: newValue.units)
+        }
+    }
+
+    /// Access the element tensor at the current dimension at an index
+    public subscript(index: Int) -> TensorSlice<UnitType> {
+        get {
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            return TensorSlice(base: self, index: index)
+        }
+        set {
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            let newShape = shape.dropFirst()
+            let contiguousIndex = unitIndex(fromIndex: index)
+            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
+            // units.replaceSubrange(range, with: newValue.units)
+            base.units.replaceSubrange(range, with: newValue.units)
+        }
+    }
+
+    public subscript(bounds: Range<Int>) -> SubSequence {
+        get {
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            return TensorSlice(base: self, bounds: CountableRange(bounds))
+        }
+        set {
+            precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            precondition(newValue.base.elementShape == elementShape,
+                         "Element shape mismatch")
+            /*
+            units[unitSubrange(from: CountableRange(bounds))] =
+                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
+            */
+            base.units[unitSubrange(from: CountableRange(bounds))] =
+                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
+        }
+    }
+}

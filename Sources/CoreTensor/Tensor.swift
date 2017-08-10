@@ -17,11 +17,14 @@
 //  limitations under the License.
 //
 
-// public protocol TensorProtocol : RangeReplaceableCollection, RandomAccessCollection
 public protocol TensorProtocol: RandomAccessCollection
     where IndexDistance == Int, Index == Int {
     associatedtype UnitType
-    var units: ArraySlice<UnitType> { get }
+    associatedtype UnitSequenceType: RandomAccessCollection
+        where UnitSequenceType.Iterator.Element == UnitType,
+              UnitSequenceType.Index == Int,
+              UnitSequenceType.IndexDistance == Int
+    var units: UnitSequenceType { get }
     var unitCountPerElement: IndexDistance { get }
     var elementShape: TensorShape? { get }
     subscript(index: Index) -> TensorSlice<UnitType> { get }
@@ -60,6 +63,7 @@ internal extension TensorProtocol {
 /// Tensor
 public struct Tensor<DataType> : TensorProtocol {
     public typealias UnitType = DataType
+    public typealias UnitSequenceType = ContiguousArray<UnitType>
     public typealias Element = TensorSlice<UnitType>
 
     /// Sub-tensor (element) shape
@@ -75,7 +79,7 @@ public struct Tensor<DataType> : TensorProtocol {
     }
 
     /// Contiguous storage
-    public fileprivate(set) var units: ContiguousArray<UnitType>
+    public internal(set) var units: ContiguousArray<UnitType>
 
     /// Capacity reserved for sub-tensors
     public var capacity: Int {
@@ -117,10 +121,11 @@ public struct Tensor<DataType> : TensorProtocol {
 
     /// Initialize a tensor from a sequence of tensors of element shape
     public init<S: Sequence>(elementShape: TensorShape, elements: S)
-        where S.Element : TensorProtocol
-    {
+        where S.Element : TensorProtocol, S.Element.UnitType == UnitType {
         self.init(elementShape: elementShape)
-        self.append(contentsOf: elements)
+        for element in elements {
+            units.append(contentsOf: element.units)
+        }
     }
 
     /// Initialize a tensor from a sequence of elements in row-major order
@@ -255,17 +260,6 @@ public extension Tensor where UnitType : FloatingPoint {
     }
 }
 
-internal extension RangeReplaceableRandomAccessSlice {
-    /*
-    public init(base: Base, bounds: Range<Int>) {
-        
-    }
-    */
-    var baseRange: Range<Base.Index> {
-        return startIndex..<endIndex
-    }
-}
-
 extension Tensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias SubSequence = TensorSlice<UnitType>
@@ -277,7 +271,7 @@ extension Tensor : RandomAccessCollection {
             let newShape = shape.dropFirst(index.count)
             let contiguousIndex = index.contiguousIndex(in: shape)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return Tensor(shape: newShape, units: units[range])
+            return TensorSlice(base: self, bounds: range)
         }
         set {
             precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
@@ -292,7 +286,7 @@ extension Tensor : RandomAccessCollection {
     /// Access a sub-tensor at an index specified by a list of dimensional indices
     /// - parameter indices: tensor indices
     /// - note: the count of indices must equal the raw rank of the tensor
-    public subscript(indices: Int...) -> Tensor<UnitType> {
+    public subscript(indices: Int...) -> TensorSlice<UnitType> {
         get {
             return self[TensorIndex(indices)]
         }
@@ -302,13 +296,10 @@ extension Tensor : RandomAccessCollection {
     }
 
     /// Access the element tensor at the current dimension at an index
-    public subscript(index: Int) -> Tensor<UnitType> {
+    public subscript(index: Int) -> TensorSlice<UnitType> {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
-            let newShape = shape.dropFirst()
-            let contiguousIndex = unitIndex(fromIndex: index)
-            let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            return Tensor(shape: newShape, units: units[range])
+            return TensorSlice(base: self, index: index)
         }
         set {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
@@ -323,15 +314,19 @@ extension Tensor : RandomAccessCollection {
         get {
             precondition(!isScalar,
                          "I am a scalar and I have no dimensions!")
-            return TensorSlice(base: self, bounds: bounds)
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            return TensorSlice(base: self, bounds: CountableRange(bounds))
         }
         set {
             precondition(!isScalar,
                          "I am a scalar and I have no dimensions!")
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
             precondition(newValue.base.elementShape == elementShape,
                          "Element shape mismatch")
-            units[unitSubrange(from: bounds)] =
-                newValue.base.units[newValue.base.unitSubrange(from: newValue.baseRange)]
+            units[unitSubrange(from: CountableRange(bounds))] =
+                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
         }
     }
 
@@ -360,6 +355,17 @@ extension Tensor : RandomAccessCollection {
     /// Returns the index before the specified one in the current dimension
     public func index(before i: Int) -> Int {
         return i - 1
+    }
+
+}
+
+public extension Tensor {
+
+    public func reshaped(as newShape: TensorShape) -> Tensor? {
+        guard self.shape.contiguousSize == newShape.contiguousSize else {
+            return nil
+        }
+        return Tensor(shape: newShape, units: units)
     }
 
 }
