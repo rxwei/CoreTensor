@@ -300,9 +300,9 @@ extension TensorSlice : RandomAccessCollection {
         set {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst()
+            precondition(newShape == newValue.shape, "Shape mismatch")
             let contiguousIndex = unitIndex(fromIndex: index)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
-            // units.replaceSubrange(range, with: newValue.units)
             base.units.replaceSubrange(range, with: newValue.units)
         }
     }
@@ -316,10 +316,6 @@ extension TensorSlice : RandomAccessCollection {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
             precondition(newValue.base.elementShape == elementShape,
                          "Element shape mismatch")
-            /*
-            units[unitSubrange(from: CountableRange(bounds))] =
-                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
-            */
             base.units[unitSubrange(from: CountableRange(bounds))] =
                 newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
         }

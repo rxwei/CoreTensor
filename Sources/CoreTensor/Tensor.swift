@@ -309,6 +309,7 @@ extension Tensor : RandomAccessCollection {
         set {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
             let newShape = shape.dropFirst()
+            precondition(newShape == newValue.shape, "Shape mismatch")
             let contiguousIndex = unitIndex(fromIndex: index)
             let range = contiguousIndex..<contiguousIndex+newShape.contiguousSize
             units.replaceSubrange(range, with: newValue.units)
