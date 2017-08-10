@@ -58,26 +58,19 @@ public extension TensorSlice {
     }
 
     var units: ArraySlice<UnitType> {
-        var unitCountPerElement = base.unitCountPerElement
-        var start = 0
-        var end = base.unitCount - 1
-        if !baseIndices.isEmpty, var elementShape = base.elementShape {
-            elementShape.dimensions +=
-                Array(repeating: 1, count: Swift.max(0, baseIndices.count - elementShape.rank))
-            let zipped = zip(baseIndices, elementShape)
-            for (n, (index, dimSize)) in zipped.enumerated() {
-                start += unitCountPerElement * index
-                if n < baseIndices.count - 1 {
-                    unitCountPerElement /= dimSize
-                }
+        let trimmedShape = base.shape.dropFirst()
+        var (start, end) = baseIndices.enumerated().reduce((0, base.unitCount), { (acc, next) in
+            let stride = trimmedShape.dropFirst(next.offset).reduce(1, *)
+            if next.offset == indexingDepth - 1 {
+                let temp = acc.0 + next.element * stride
+                return (temp, temp + stride)
             }
-            end = start+unitCountPerElement
-            unitCountPerElement /= elementShape[indexingDepth - 1]
-        }
+            return (acc.0 + next.element * stride, acc.1)
+        })
         if let bounds = bounds {
-            let temp = start
-            start = temp + bounds.startIndex * unitCountPerElement
-            end = temp + bounds.endIndex * unitCountPerElement
+            let stride = trimmedShape.dropFirst(indexingDepth).reduce(1, *)
+            (start, end) = (start + bounds.startIndex * stride,
+                            start + bounds.endIndex * stride)
         }
         let range = start..<end
         return base.units[range]
