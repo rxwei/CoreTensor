@@ -348,6 +348,36 @@ extension TensorSlice : RandomAccessCollection {
     }
 }
 
+public extension TensorSlice {
+
+    public func reshaped(as newShape: TensorShape) -> Tensor<UnitType>? {
+        guard self.shape.contiguousSize == newShape.contiguousSize else {
+            return nil
+        }
+        return Tensor(shape: newShape, units: units)
+    }
+
+}
+
+public extension TensorSlice {
+
+    func withUnsafeBufferPointer<Result>
+        (_ body: (UnsafeBufferPointer<UnitType>) throws -> Result) rethrows -> Result {
+        return try units.withUnsafeBufferPointer { ptr in
+            try body(ptr)
+        }
+    }
+
+    mutating func withUnsafeMutableBufferPointer<Result>
+        (_ body: (inout UnsafeMutableBufferPointer<UnitType>) throws -> Result) rethrows -> Result {
+        var units = self.units
+        return try units.withUnsafeMutableBufferPointer { ptr in
+            try body(&ptr)
+        }
+    }
+
+}
+
 extension TensorSlice : TextOutputStreamable {
     public func write<Target>(to target: inout Target) where Target : TextOutputStream {
         target.write(
