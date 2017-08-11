@@ -25,6 +25,9 @@ public struct RankedTensor<R: StaticRank> {
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
 
+    /// Tensor storage
+    private var storage: Tensor<DataType>
+
     /// Tensor rank
     public static var rank: UInt {
         return R.rank
@@ -45,7 +48,9 @@ public struct RankedTensor<R: StaticRank> {
     public private(set) var unitCountPerElement: Int
 
     /// Contiguous storage
-    public fileprivate(set) var units: ContiguousArray<DataType>
+    public var units: ContiguousArray<DataType> {
+        return storage.units
+    }
 
     /// Capacity reserved for sub-tensor
     public var capacity: Int {
@@ -55,14 +60,14 @@ public struct RankedTensor<R: StaticRank> {
     /// Initialize a tensor using an existing slice of elements in row-major order
     /// - parameter shape: tensor shape
     /// - parameter elements: slice of existing elements in row-major order
-    public init(shape: Shape, units: ContiguousArray<DataType>) {
+    internal init(shape: Shape, units: ContiguousArray<DataType>) {
         // TODO: Reduce number of calls to `shapeToArray`
         let shapeArray = RankedTensor.shapeToArray(shape)
         let contiguousSize: Int = shapeArray.reduce(1, *)
         precondition(units.count >= contiguousSize,
                      "The slice has fewer elements than required by the shape")
         self.shape = shape
-        self.units = ContiguousArray(units)
+        self.storage = Tensor<DataType>(shape: TensorShape(shapeArray), units: units)
         self.unitCountPerElement = shapeArray.count == 0 || shapeArray[0] == 0 ?
             contiguousSize : contiguousSize / shapeArray[0]
     }
@@ -98,7 +103,8 @@ public extension RankedTensor {
     }
 
     var dynamicShape: TensorShape {
-        return TensorShape(RankedTensor.shapeToArray(shape))
+        // return TensorShape(RankedTensor.shapeToArray(shape))
+        return storage.shape
     }
 }
 
@@ -166,33 +172,33 @@ public extension RankedTensor {
     }
 
     mutating func updateUnit(at index: Int, to newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] = newValue
+        storage.updateUnit(at: index, to: newValue)
     }
 }
 
 public extension RankedTensor where R.DataType : Numeric {
     mutating func incrementUnit(at index: Int, by newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] += newValue
+        storage.incrementUnit(at: index, by: newValue)
     }
 
     mutating func decrementUnit(at index: Int, by newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] -= newValue
+        storage.decrementUnit(at: index, by: newValue)
     }
 
     mutating func multiplyUnit(at index: Int, by newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] *= newValue
+        storage.multiplyUnit(at: index, by: newValue)
     }
 }
 
 public extension RankedTensor where R.DataType : BinaryInteger {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] /= newValue
+        storage.divideUnit(at: index, by: newValue)
     }
 }
 
 public extension RankedTensor where R.DataType : FloatingPoint {
     mutating func divideUnit(at index: Int, by newValue: DataType) {
-        units[units.startIndex.advanced(by: index)] /= newValue
+        storage.divideUnit(at: index, by: newValue)
     }
 }
 
@@ -211,20 +217,20 @@ extension RankedTensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
 
-    /// Get indices corresponding to the units of the element tensor at index
+    /// Get indices corresponding to the units of the element tensor at an index
     fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
         let elementTensorShape = dynamicShape.dropFirst()
         let contiguousIndex = unitIndex(fromIndex: index)
         return contiguousIndex..<contiguousIndex+elementTensorShape.contiguousSize
     }
 
-    /// Get units in the element tensor at index
+    /// Get units in the element tensor at an index
     fileprivate func getElementTensorUnits(index: Int) -> ContiguousArray<DataType> {
         let range = getElementTensorRange(index: index)
         return ContiguousArray(units[range])
     }
 
-    /// Access the scalar element or element tensor at index
+    /// Access the scalar element or element tensor at an index
     public subscript(index: Int) -> Element {
         get {
             switch (Element.self) {
@@ -247,15 +253,16 @@ extension RankedTensor : RandomAccessCollection {
             }
         }
         set {
+            /// - TODO: consider using storage subscript instead of directly modifying units
             switch (newValue) {
             case let scalar as DataType:
-                units[index] = scalar
+                storage.units[index] = scalar
             case let tensor as Tensor1D<DataType>:
-                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             case let tensor as Tensor2D<DataType>:
-                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             case let tensor as Tensor3D<DataType>:
-                units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
             default:
                 fatalError("Invalid element tensor type")
             }
