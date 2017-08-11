@@ -216,6 +216,7 @@ public extension RankedTensor {
 extension RankedTensor : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
+    public typealias SubSequence = RankedTensor<R>
 
     /// Get indices corresponding to the units of the element tensor at an index
     fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
@@ -266,6 +267,27 @@ extension RankedTensor : RandomAccessCollection {
             default:
                 fatalError("Invalid element tensor type")
             }
+        }
+    }
+
+    /// Access the sub-tensor specified by a contiguous range of indices
+    public subscript(bounds: Range<Int>) -> SubSequence {
+        get {
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            var shapeArray = RankedTensor.shapeToArray(shape)
+            shapeArray[0] = bounds.count
+            let newUnits = ContiguousArray(units[unitSubrange(from: bounds)])
+            return SubSequence(shape: arrayToShape(shapeArray),
+                                units: newUnits)
+        }
+        set {
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            precondition(newValue.dynamicShape == dynamicShape.dropFirst().prepending(bounds.count),
+                         "Shape mismatch")
+            storage.units[unitSubrange(from: bounds)] =
+                newValue.units[newValue.unitSubrange(from: newValue.indices)]
         }
     }
 
