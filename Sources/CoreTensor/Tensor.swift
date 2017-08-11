@@ -270,7 +270,7 @@ extension Tensor : RandomAccessCollection {
     public typealias SubSequence = TensorSlice<UnitType>
 
     /// Access the element tensor specified by a TensorIndex
-    public subscript(index: TensorIndex) -> TensorSlice<UnitType> {
+    public subscript(index: TensorIndex) -> Element {
         get {
             precondition(!isScalar || index.isEmpty, "I am a scalar and I have no dimensions!")
             return TensorSlice(base: self, indices: index.elements)
@@ -288,7 +288,7 @@ extension Tensor : RandomAccessCollection {
     /// Access the element tensor specified by a list of dimensional indices
     /// - parameter indices: tensor indices
     /// - note: the count of indices must equal the raw rank of the tensor
-    public subscript(indices: Int...) -> TensorSlice<UnitType> {
+    public subscript(indices: Int...) -> Element {
         get {
             return self[TensorIndex(indices)]
         }
@@ -327,10 +327,10 @@ extension Tensor : RandomAccessCollection {
                          "I am a scalar and I have no dimensions!")
             precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
                          "Slice indices are out of bounds")
-            precondition(newValue.base.elementShape == elementShape,
-                         "Element shape mismatch")
+            precondition(newValue.shape == elementShape?.prepending(bounds.count),
+                         "Shape mismatch")
             units[unitSubrange(from: CountableRange(bounds))] =
-                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
+                newValue.base.units[newValue.unitSubrange(from: newValue.indices)]
         }
     }
 

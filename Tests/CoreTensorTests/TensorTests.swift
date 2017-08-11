@@ -2,7 +2,7 @@
 //  TensorTests.swift
 //  CoreTensor
 //
-//  Copyright 2016-2017 Richard Wei.
+//  Copyright 2016-2017 DLVM Team.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ class CoreTensorTests: XCTestCase {
     }
 
     func testSlice() {
-        let tensor = Tensor<Int>(shape: [3, 4, 5], unitsIncreasingFrom: 0)
+        var tensor = Tensor<Int>(shape: [3, 4, 5], unitsIncreasingFrom: 0)
 
         /// Test shapes
         XCTAssertEqual(tensor[0].shape, [4, 5])
@@ -150,6 +150,16 @@ class CoreTensorTests: XCTestCase {
             .elementsEqual([Array(0..<20), Array(20..<40)], by: ==))
         XCTAssertTrue(tensor[1][0..<2].map {Array($0.units)}
             .elementsEqual([Array(20..<25), Array(25..<30)], by: ==))
+
+        /// Test subscript setters
+        tensor[0] = TensorSlice<Int>(shape: [4, 5], repeating: 1)
+        XCTAssertEqual(Array(tensor.units),
+                       Array(repeating: 1, count: 20) + Array(20..<60))
+        tensor[0..<2] = TensorSlice<Int>(shape: [2, 4, 5], unitsIncreasingFrom: 0)
+        XCTAssertEqual(Array(tensor.units), Array(0..<60))
+        tensor[0][1..<3] = TensorSlice<Int>(shape: [2, 5], unitsIncreasingFrom: 0)
+        XCTAssertEqual(Array(tensor.units),
+                       Array((0..<5)) + Array((0..<10)) + Array(15..<60))
     }
 
     static var allTests: [(String, (CoreTensorTests) -> () throws -> Void)] {

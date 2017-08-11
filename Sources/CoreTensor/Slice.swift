@@ -336,14 +336,18 @@ extension TensorSlice : RandomAccessCollection {
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
             return TensorSlice(base: self, bounds: CountableRange(bounds))
         }
         set {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
-            precondition(newValue.base.elementShape == elementShape,
-                         "Element shape mismatch")
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            precondition(newValue.shape == elementShape?.prepending(bounds.count),
+                         "Shape mismatch")
             base.units[unitSubrange(from: CountableRange(bounds))] =
-                newValue.base.units[newValue.base.unitSubrange(from: newValue.indices)]
+                newValue.base.units[newValue.unitSubrange(from: newValue.indices)]
         }
     }
 }
