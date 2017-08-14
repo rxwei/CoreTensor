@@ -78,8 +78,7 @@ public struct Tensor<DataType> : TensorProtocol {
     }
 
     /// Contiguous storage
-    /// - TODO: reconsider setter access, currently public for use with RankedTensor
-    public public(set) var units: ContiguousArray<UnitType>
+    public internal(set) var units: ContiguousArray<UnitType>
 
     /// Capacity reserved for sub-tensors
     public var capacity: Int {

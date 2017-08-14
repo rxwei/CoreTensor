@@ -22,7 +22,7 @@ public typealias Shape2D = (UInt, UInt)
 public typealias Shape3D = (UInt, UInt, UInt)
 public typealias Shape4D = (UInt, UInt, UInt, UInt)
 
-internal func arrayToShape(_ array: [Int]) -> Shape1D {
+internal func arrayToShape1D(_ array: [Int]) -> Shape1D {
     var array = array
     return withUnsafePointer(to: &array[0]) { ptr in
         ptr.withMemoryRebound(to: Shape1D.self, capacity: 1) { ptr in
@@ -31,7 +31,7 @@ internal func arrayToShape(_ array: [Int]) -> Shape1D {
     }
 }
 
-internal func arrayToShape(_ array: [Int]) -> Shape2D {
+internal func arrayToShape2D(_ array: [Int]) -> Shape2D {
     var array = array
     return withUnsafePointer(to: &array[0]) { ptr in
         ptr.withMemoryRebound(to: Shape2D.self, capacity: 1) { ptr in
@@ -40,7 +40,7 @@ internal func arrayToShape(_ array: [Int]) -> Shape2D {
     }
 }
 
-internal func arrayToShape(_ array: [Int]) -> Shape3D {
+internal func arrayToShape3D(_ array: [Int]) -> Shape3D {
     var array = array
     return withUnsafePointer(to: &array[0]) { ptr in
         ptr.withMemoryRebound(to: Shape3D.self, capacity: 1) { ptr in
@@ -49,7 +49,7 @@ internal func arrayToShape(_ array: [Int]) -> Shape3D {
     }
 }
 
-internal func arrayToShape(_ array: [Int]) -> Shape4D {
+internal func arrayToShape4D(_ array: [Int]) -> Shape4D {
     var array = array
     return withUnsafePointer(to: &array[0]) { ptr in
         ptr.withMemoryRebound(to: Shape4D.self, capacity: 1) { ptr in

@@ -158,6 +158,14 @@ public extension TensorSlice {
         self.bounds = nil
     }
 
+    init(_ base: Tensor<UnitType>) {
+        self.init(base: base, bounds: base.indices)
+    }
+
+    init(_ base: TensorSlice<UnitType>) {
+        self.init(base: base, bounds: base.indices)
+    }
+
     internal init(elementShape: TensorShape?, units: ContiguousArray<UnitType>) {
         let base = Tensor<UnitType>(elementShape: elementShape, units: units)
         self.init(base: base, bounds: base.indices)

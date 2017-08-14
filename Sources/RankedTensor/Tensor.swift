@@ -18,6 +18,7 @@
 //
 
 import struct CoreTensor.TensorShape
+import struct CoreTensor.TensorSlice
 import struct CoreTensor.Tensor
 
 public struct RankedTensor<R: StaticRank> {
@@ -103,14 +104,13 @@ public extension RankedTensor {
     }
 
     var dynamicShape: TensorShape {
-        // return TensorShape(RankedTensor.shapeToArray(shape))
         return storage.shape
     }
 }
 
 public extension RankedTensor where R.Shape == Shape2D {
     fileprivate func getElementShape() -> Shape1D {
-        return arrayToShape(Array(dynamicShape.dimensions.dropFirst()))
+        return arrayToShape1D(Array(dynamicShape.dimensions.dropFirst()))
     }
 }
 
@@ -238,15 +238,15 @@ extension RankedTensor : RandomAccessCollection {
             case is DataType.Type:
                 return units[index] as! Element
             case is Tensor1D<DataType>.Type:
-                let elementShape: Shape1D = arrayToShape(dynamicShape.dropFirst().dimensions)
+                let elementShape = arrayToShape1D(dynamicShape.dropFirst().dimensions)
                 let elementUnits = getElementTensorUnits(index: index)
                 return Tensor1D<DataType>(shape: elementShape, units: elementUnits) as! Element
             case is Tensor2D<DataType>.Type:
-                let elementShape: Shape2D = arrayToShape(dynamicShape.dropFirst().dimensions)
+                let elementShape = arrayToShape2D(dynamicShape.dropFirst().dimensions)
                 let elementUnits = getElementTensorUnits(index: index)
                 return Tensor2D<DataType>(shape: elementShape, units: elementUnits) as! Element
             case is Tensor3D<DataType>.Type:
-                let elementShape: Shape3D = arrayToShape(dynamicShape.dropFirst().dimensions)
+                let elementShape = arrayToShape3D(dynamicShape.dropFirst().dimensions)
                 let elementUnits = getElementTensorUnits(index: index)
                 return Tensor3D<DataType>(shape: elementShape, units: elementUnits) as! Element
             default:
@@ -257,19 +257,20 @@ extension RankedTensor : RandomAccessCollection {
             /// - TODO: consider using storage subscript instead of directly modifying units
             switch (newValue) {
             case let scalar as DataType:
-                storage.units[index] = scalar
+                storage[index] = TensorSlice(scalar: scalar)
             case let tensor as Tensor1D<DataType>:
-                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage[index] = TensorSlice(tensor.storage)
             case let tensor as Tensor2D<DataType>:
-                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage[index] = TensorSlice(tensor.storage)
             case let tensor as Tensor3D<DataType>:
-                storage.units.replaceSubrange(getElementTensorRange(index: index), with: tensor.units)
+                storage[index] = TensorSlice(tensor.storage)
             default:
                 fatalError("Invalid element tensor type")
             }
         }
     }
 
+    /*
     /// Access the sub-tensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
@@ -290,6 +291,7 @@ extension RankedTensor : RandomAccessCollection {
                 newValue.units[newValue.unitSubrange(from: newValue.indices)]
         }
     }
+    */
 
     /// Returns the number of elements
     public var count: Int {
