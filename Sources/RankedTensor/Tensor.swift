@@ -21,16 +21,17 @@ import struct CoreTensor.TensorShape
 import struct CoreTensor.TensorSlice
 import struct CoreTensor.Tensor
 
+/// Tensor with static rank
 public struct RankedTensor<R: StaticRank> {
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
 
     /// Tensor storage
-    private var storage: Tensor<DataType>
+    internal var storage: Tensor<DataType>
 
     /// Tensor rank
-    public static var rank: UInt {
+    public var rank: UInt {
         return R.rank
     }
 
@@ -93,7 +94,7 @@ public struct RankedTensor<R: StaticRank> {
 }
 
 public extension RankedTensor {
-    fileprivate static func shapeToArray(_ shape: Shape) -> [Int] {
+    internal static func shapeToArray(_ shape: Shape) -> [Int] {
         var shape = shape
         return withUnsafePointer(to: &shape) { ptr in
             ptr.withMemoryRebound(to: UInt.self, capacity: 1) { ptr in
@@ -237,33 +238,26 @@ extension RankedTensor : RandomAccessCollection {
             switch (Element.self) {
             case is DataType.Type:
                 return units[index] as! Element
-            case is Tensor1D<DataType>.Type:
-                let elementShape = arrayToShape1D(dynamicShape.dropFirst().dimensions)
-                let elementUnits = getElementTensorUnits(index: index)
-                return Tensor1D<DataType>(shape: elementShape, units: elementUnits) as! Element
-            case is Tensor2D<DataType>.Type:
-                let elementShape = arrayToShape2D(dynamicShape.dropFirst().dimensions)
-                let elementUnits = getElementTensorUnits(index: index)
-                return Tensor2D<DataType>(shape: elementShape, units: elementUnits) as! Element
-            case is Tensor3D<DataType>.Type:
-                let elementShape = arrayToShape3D(dynamicShape.dropFirst().dimensions)
-                let elementUnits = getElementTensorUnits(index: index)
-                return Tensor3D<DataType>(shape: elementShape, units: elementUnits) as! Element
+            case is TensorSlice1D<DataType>.Type:
+                return TensorSlice1D<DataType>(base: self, index: index) as! Element
+            case is TensorSlice2D<DataType>.Type:
+                return TensorSlice2D<DataType>(base: self, index: index) as! Element
+            case is TensorSlice3D<DataType>.Type:
+                return TensorSlice3D<DataType>(base: self, index: index) as! Element
             default:
                 fatalError("Invalid element tensor type")
             }
         }
         set {
-            /// - TODO: consider using storage subscript instead of directly modifying units
             switch (newValue) {
             case let scalar as DataType:
                 storage[index] = TensorSlice(scalar: scalar)
-            case let tensor as Tensor1D<DataType>:
-                storage[index] = TensorSlice(tensor.storage)
-            case let tensor as Tensor2D<DataType>:
-                storage[index] = TensorSlice(tensor.storage)
-            case let tensor as Tensor3D<DataType>:
-                storage[index] = TensorSlice(tensor.storage)
+            case let tensor as TensorSlice1D<DataType>:
+                storage[index] = TensorSlice(tensor.base)
+            case let tensor as TensorSlice2D<DataType>:
+                storage[index] = TensorSlice(tensor.base)
+            case let tensor as TensorSlice3D<DataType>:
+                storage[index] = TensorSlice(tensor.base)
             default:
                 fatalError("Invalid element tensor type")
             }

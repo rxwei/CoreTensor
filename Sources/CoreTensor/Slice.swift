@@ -17,7 +17,7 @@
 //  limitations under the License.
 //
 
-/// TensorSlice
+/// Tensor slice
 public struct TensorSlice<UnitType> : TensorProtocol {
     public typealias Base = Tensor<UnitType>
 

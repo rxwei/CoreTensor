@@ -59,8 +59,8 @@ class RankedTensorTests: XCTestCase {
         XCTAssertEqual(tensor[0][1].map { $0 + 1 }, [1, 1, 1])
 
         /// Test subscript setters
-        tensor[0] = Tensor2D<Int>(shape: (2, 3), repeating: 2)
-        tensor[0][0] = Tensor1D<Int>(shape: (3), repeating: 1)
+        tensor[0] = TensorSlice2D<Int>(shape: (2, 3), repeating: 2)
+        tensor[0][0] = TensorSlice1D<Int>(shape: (3), repeating: 1)
         tensor[0][0][0] = 0
         XCTAssertEqual(tensor.units, [0, 1, 1, 2, 2, 2])
     }

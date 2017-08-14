@@ -34,20 +34,20 @@ public struct R1<T> : StaticRank {
 public struct R2<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = Shape2D
-    public typealias ElementTensor = Tensor1D<T>
+    public typealias ElementTensor = TensorSlice1D<T>
     public static var rank: UInt { return 2 }
 }
 
 public struct R3<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = Shape3D
-    public typealias ElementTensor = Tensor2D<T>
+    public typealias ElementTensor = TensorSlice2D<T>
     public static var rank: UInt { return 3 }
 }
 
 public struct R4<T> : StaticRank {
     public typealias DataType = T
     public typealias Shape = Shape4D
-    public typealias ElementTensor = Tensor3D<T>
+    public typealias ElementTensor = TensorSlice3D<T>
     public static var rank: UInt { return 4 }
 }
