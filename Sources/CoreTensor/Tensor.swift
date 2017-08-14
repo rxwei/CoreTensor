@@ -336,7 +336,7 @@ extension Tensor : RandomAccessCollection {
     }
 
     public var count: Int {
-        return isScalar ? 0 : units.count / unitCountPerElement
+        return isScalar ? 1 : units.count / unitCountPerElement
     }
 
     /// Returns a sequence of tensor indices for scalar elements

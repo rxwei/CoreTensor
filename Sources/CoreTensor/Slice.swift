@@ -77,7 +77,7 @@ public extension TensorSlice {
         } else if indexingDepth < base.shape.rank {
             return 0..<(base.shape[indexingDepth])
         }
-        return 0..<0
+        return 0..<1
     }
 
     var startIndex: Int {
@@ -97,8 +97,6 @@ public extension TensorSlice {
 public extension TensorSlice {
 
     init(base: Tensor<UnitType>, bounds: CountableRange<Int>?) {
-        precondition(!(base.isScalar && bounds != nil),
-                     "Slices of a scalar cannot have bounds")
         if let bounds = bounds {
             precondition(base.indices ~= bounds.startIndex
                          && base.indices ~= bounds.endIndex - 1,
@@ -110,8 +108,6 @@ public extension TensorSlice {
     }
 
     init(base: TensorSlice<UnitType>, bounds: CountableRange<Int>?) {
-        precondition(!(base.isScalar && bounds != nil),
-                     "Slices of a scalar cannot have bounds")
         if let bounds = bounds {
             precondition(base.indices ~= bounds.startIndex
                          && base.indices ~= bounds.endIndex - 1,

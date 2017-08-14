@@ -160,6 +160,10 @@ class CoreTensorTests: XCTestCase {
         tensor[0][1..<3] = TensorSlice<Int>(shape: [2, 5], unitsIncreasingFrom: 0)
         XCTAssertEqual(Array(tensor.units),
                        Array((0..<5)) + Array((0..<10)) + Array(15..<60))
+        for scalarIndex in tensor[0][0].indices {
+            tensor[0][0][scalarIndex] = TensorSlice<Int>(scalar: scalarIndex - 5)
+        }
+        XCTAssertEqual(Array(tensor.units), Array((-5..<10)) + Array(15..<60))
     }
 
     static var allTests: [(String, (CoreTensorTests) -> () throws -> Void)] {
