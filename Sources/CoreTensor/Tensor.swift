@@ -65,7 +65,7 @@ public struct Tensor<DataType> : TensorProtocol {
     public typealias UnitType = DataType
     public typealias UnitSequenceType = ContiguousArray<UnitType>
 
-    /// subtensor (element) shape
+    /// Element tensor shape
     public let elementShape: TensorShape?
 
     public var isScalar: Bool {

@@ -23,6 +23,7 @@ import struct CoreTensor.TensorSlice
 
 /// Ranked tensor slice
 public struct RankedTensorSlice<R: StaticRank> {
+
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
@@ -65,9 +66,11 @@ public struct RankedTensorSlice<R: StaticRank> {
     public var capacity: Int {
         return units.capacity / unitCountPerElement
     }
+
 }
 
 public extension RankedTensorSlice {
+
     /// Indexing depth of this slice, i.e. the rank difference between the base
     /// and the slice
     private var indexingDepth: Int {
@@ -97,7 +100,6 @@ public extension RankedTensorSlice {
 }
 
 public extension RankedTensorSlice {
-
     init<A>(base: RankedTensor<A>, bounds: CountableRange<Int>?)
         where A.DataType == DataType {
             if let bounds = bounds {
@@ -143,7 +145,7 @@ public extension RankedTensorSlice {
     init<A>(base: RankedTensor<A>, indices: [Int])
         where A.DataType == DataType {
             precondition(zip(RankedTensor<A>.shapeToArray(base.shape), indices)
-                .filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+                .filter { !($1 >= 0 && $1 < $0) }.count == 0,
                          "Element indices are out of bounds")
             self.baseIndices = indices
             self.bounds = nil
@@ -153,7 +155,7 @@ public extension RankedTensorSlice {
     init<A>(base: RankedTensorSlice<A>, indices: [Int])
         where A.DataType == DataType {
             precondition(zip(RankedTensorSlice<A>.shapeToArray(base.shape), indices)
-                .filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+                .filter { !($1 >= 0 && $1 < $0) }.count == 0,
                          "Element indices are out of bounds")
             self.baseIndices = base.baseIndices + indices
             self.bounds = nil

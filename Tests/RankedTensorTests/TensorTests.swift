@@ -82,7 +82,7 @@ class RankedTensorTests: XCTestCase {
         }
         XCTAssertEqual(tensor.units, ContiguousArray((1...60)))
     }
-    
+
     func testSlicing() {
         var tensor = Tensor3D<Int>(shape: (3, 4, 5), unitsIncreasingFrom: 0)
 

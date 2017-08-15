@@ -33,7 +33,7 @@ public extension TensorSlice {
         return baseIndices.count
     }
 
-    /// Shape of element tensors
+    /// Element tensor shape
     var elementShape: TensorShape? {
         return base.elementShape.flatMap { baseElemShape in
             if baseElemShape.rank + 1 == indexingDepth {
@@ -141,7 +141,7 @@ public extension TensorSlice {
     init(base: Tensor<UnitType>, indices: [Int]) {
         precondition(!base.isScalar,
                      "A scalar has no elements")
-        precondition(zip(base.shape, indices).filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+        precondition(zip(base.shape, indices).filter { !($1 >= 0 && $1 < $0) }.count == 0,
                      "Element indices are out of bounds")
         self.base = base
         self.baseIndices = indices
@@ -151,7 +151,7 @@ public extension TensorSlice {
     init(base: TensorSlice<UnitType>, indices: [Int]) {
         precondition(!base.isScalar,
                      "A scalar has no elements")
-        precondition(zip(base.shape, indices).filter{ !($1 >= 0 && $1 < $0) }.count == 0,
+        precondition(zip(base.shape, indices).filter { !($1 >= 0 && $1 < $0) }.count == 0,
                      "Element indices are out of bounds")
         self.base = base.base
         self.baseIndices = base.baseIndices + indices
@@ -283,7 +283,6 @@ extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteg
     }
 
 }
-
 
 public extension TensorSlice {
 
