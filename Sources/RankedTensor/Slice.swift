@@ -26,6 +26,8 @@ public struct RankedTensorSlice<R: StaticRank> {
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
+
+    /// Tensor slice storage
     public typealias Base = TensorSlice<DataType>
 
     public private(set) var base: Base
@@ -59,7 +61,7 @@ public struct RankedTensorSlice<R: StaticRank> {
         return units.count
     }
 
-    /// Capacity reserved for sub-tensor
+    /// Capacity reserved for element tensors
     public var capacity: Int {
         return units.capacity / unitCountPerElement
     }
@@ -100,7 +102,7 @@ public extension RankedTensorSlice {
         where A.DataType == DataType {
             if let bounds = bounds {
                 precondition(base.indices ~= bounds.startIndex
-                    && base.indices ~= bounds.endIndex - 1,
+                             && base.indices ~= bounds.endIndex - 1,
                              "Slice is out of bounds")
             }
             self.baseIndices = []
@@ -112,7 +114,7 @@ public extension RankedTensorSlice {
         where A.DataType == DataType {
             if let bounds = bounds {
                 precondition(base.indices ~= bounds.startIndex
-                    && base.indices ~= bounds.endIndex - 1,
+                             && base.indices ~= bounds.endIndex - 1,
                              "Slice is out of bounds")
             }
             self.baseIndices = base.baseIndices
@@ -268,7 +270,7 @@ public extension RankedTensorSlice {
 extension RankedTensorSlice : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = ElementTensor
-    // public typealias SubSequence = ElementTensor
+    public typealias SubSequence = RankedTensorSlice<R>
 
     /// Get indices corresponding to the units of the element tensor at index
     fileprivate func getElementTensorRange(index: Int) -> CountableRange<Int> {
@@ -313,6 +315,22 @@ extension RankedTensorSlice : RandomAccessCollection {
             default:
                 fatalError("Invalid tensor slice type")
             }
+        }
+    }
+
+    /// Access the sub-tensor specified by a contiguous range of indices
+    public subscript(bounds: Range<Int>) -> SubSequence {
+        get {
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            return SubSequence(base: self, bounds: CountableRange(bounds))
+        }
+        set {
+            precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
+                         "Slice indices are out of bounds")
+            precondition(newValue.dynamicShape == dynamicShape.dropFirst().prepending(bounds.count),
+                         "Shape mismatch")
+            base[bounds] = newValue.base
         }
     }
 }

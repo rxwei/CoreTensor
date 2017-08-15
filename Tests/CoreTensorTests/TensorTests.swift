@@ -116,7 +116,7 @@ class CoreTensorTests: XCTestCase {
         XCTAssertEqual(trans.units, [1, 4, 2, 5, 3, 6])
     }
 
-    func testSlice() {
+    func testSlicing() {
         var tensor = Tensor<Int>(shape: [3, 4, 5], unitsIncreasingFrom: 0)
 
         /// Test shapes
@@ -176,7 +176,7 @@ class CoreTensorTests: XCTestCase {
             ("testMutating", testMutating),
             ("testAssignment", testAssignment),
             ("testTranspose", testTranspose),
-            ("testSlice", testSlice),
+            ("testSlicing", testSlicing),
         ]
     }
 

@@ -90,7 +90,7 @@ public extension TensorSlice {
 
     /// Capacity reserved for element tensors
     var capacity: Int {
-        return base.capacity
+        return units.capacity / unitCountPerElement
     }
 }
 
