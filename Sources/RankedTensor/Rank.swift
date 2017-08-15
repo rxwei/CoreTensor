@@ -33,21 +33,21 @@ public struct R1<T> : StaticRank {
 
 public struct R2<T> : StaticRank {
     public typealias DataType = T
-    public typealias Shape = (UInt, UInt)
+    public typealias Shape = Shape2D
     public typealias ElementTensor = Tensor<R1<T>>
     public static var rank: UInt { return 2 }
 }
 
 public struct R3<T> : StaticRank {
     public typealias DataType = T
-    public typealias Shape = (UInt, UInt, UInt)
+    public typealias Shape = Shape3D
     public typealias ElementTensor = Tensor<R2<T>>
     public static var rank: UInt { return 3 }
 }
 
 public struct R4<T> : StaticRank {
     public typealias DataType = T
-    public typealias Shape = (UInt, UInt, UInt, UInt)
+    public typealias Shape = Shape4D
     public typealias ElementTensor = Tensor<R3<T>>
     public static var rank: UInt { return 4 }
 }
