@@ -257,6 +257,42 @@ extension RankedTensorSlice where R.DataType : Strideable, R.DataType.Stride : S
 }
 
 public extension RankedTensorSlice {
+    func makeUnitIterator() -> IndexingIterator<ArraySlice<DataType>> {
+        return units.makeIterator()
+    }
+
+    mutating func updateUnit(at index: Int, to newValue: DataType) {
+        base.updateUnit(at: index, to: newValue)
+    }
+}
+
+public extension RankedTensorSlice where R.DataType : Numeric {
+    mutating func incrementUnit(at index: Int, by newValue: DataType) {
+        base.incrementUnit(at: index, by: newValue)
+    }
+
+    mutating func decrementUnit(at index: Int, by newValue: DataType) {
+        base.decrementUnit(at: index, by: newValue)
+    }
+
+    mutating func multiplyUnit(at index: Int, by newValue: DataType) {
+        base.multiplyUnit(at: index, by: newValue)
+    }
+}
+
+public extension RankedTensorSlice where R.DataType : BinaryInteger {
+    mutating func divideUnit(at index: Int, by newValue: DataType) {
+        base.divideUnit(at: index, by: newValue)
+    }
+}
+
+public extension RankedTensorSlice where R.DataType : FloatingPoint {
+    mutating func divideUnit(at index: Int, by newValue: DataType) {
+        base.divideUnit(at: index, by: newValue)
+    }
+}
+
+public extension RankedTensorSlice {
     func unitIndex(fromIndex index: Int) -> Int {
         return unitCountPerElement * index
     }
@@ -318,7 +354,7 @@ extension RankedTensorSlice : RandomAccessCollection {
         }
     }
 
-    /// Access the sub-tensor specified by a contiguous range of indices
+    /// Access the subtensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
@@ -332,6 +368,29 @@ extension RankedTensorSlice : RandomAccessCollection {
                          "Shape mismatch")
             base[bounds] = newValue.base
         }
+    }
+}
+
+public extension RankedTensorSlice {
+    func withUnsafeBufferPointer<Result>
+        (_ body: (UnsafeBufferPointer<DataType>) throws -> Result) rethrows -> Result {
+        return try units.withUnsafeBufferPointer { ptr in
+            try body(ptr)
+        }
+    }
+
+    mutating func withUnsafeMutableBufferPointer<Result>
+        (_ body: (inout UnsafeMutableBufferPointer<DataType>) throws -> Result) rethrows -> Result {
+        var units = self.units
+        return try units.withUnsafeMutableBufferPointer { ptr in
+            try body(&ptr)
+        }
+    }
+}
+
+extension RankedTensorSlice : TextOutputStreamable {
+    public func write<Target>(to target: inout Target) where Target : TextOutputStream {
+        target.write("[\(map {"\($0)"}.joined(separator: ", "))]")
     }
 }
 

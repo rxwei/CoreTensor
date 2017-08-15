@@ -43,7 +43,7 @@ public struct RankedTensor<R: StaticRank> {
         return units.count
     }
 
-    /// The number of items (atoms) per element (sub-tensor).
+    /// The number of items (atoms) per element (subtensor).
     /// - Note: This holds the same value as the computed property
     /// `dynamicShape.contiguousSize`, which is extremely frequently used.
     /// We cache it in this variable whenever a new shape is set
@@ -54,7 +54,7 @@ public struct RankedTensor<R: StaticRank> {
         return storage.units
     }
 
-    /// Capacity reserved for sub-tensor
+    /// Capacity reserved for element tensors
     public var capacity: Int {
         return units.capacity / unitCountPerElement
     }
@@ -106,12 +106,6 @@ public extension RankedTensor {
 
     var dynamicShape: TensorShape {
         return storage.shape
-    }
-}
-
-public extension RankedTensor where R.Shape == Shape2D {
-    fileprivate func getElementShape() -> Shape1D {
-        return arrayToShape1D(Array(dynamicShape.dimensions.dropFirst()))
     }
 }
 
@@ -264,7 +258,7 @@ extension RankedTensor : RandomAccessCollection {
         }
     }
 
-    /// Access the sub-tensor specified by a contiguous range of indices
+    /// Access the subtensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(indices ~= bounds.lowerBound && indices ~= bounds.upperBound - 1,
@@ -306,6 +300,29 @@ extension RankedTensor : RandomAccessCollection {
     /// Returns the index before the specified one in the current dimension
     public func index(before i: Int) -> Int {
         return i - 1
+    }
+}
+
+public extension RankedTensor {
+    func withUnsafeBufferPointer<Result>
+        (_ body: (UnsafeBufferPointer<DataType>) throws -> Result) rethrows -> Result {
+        return try units.withUnsafeBufferPointer { ptr in
+            try body(ptr)
+        }
+    }
+
+    mutating func withUnsafeMutableBufferPointer<Result>
+        (_ body: (inout UnsafeMutableBufferPointer<DataType>) throws -> Result) rethrows -> Result {
+        var units = self.units
+        return try units.withUnsafeMutableBufferPointer { ptr in
+            try body(&ptr)
+        }
+    }
+}
+
+extension RankedTensor : TextOutputStreamable {
+    public func write<Target>(to target: inout Target) where Target : TextOutputStream {
+        target.write("[\(map {"\($0)"}.joined(separator: ", "))]")
     }
 }
 

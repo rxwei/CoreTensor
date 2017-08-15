@@ -65,7 +65,7 @@ public struct Tensor<DataType> : TensorProtocol {
     public typealias UnitType = DataType
     public typealias UnitSequenceType = ContiguousArray<UnitType>
 
-    /// Sub-tensor (element) shape
+    /// subtensor (element) shape
     public let elementShape: TensorShape?
 
     public var isScalar: Bool {
@@ -80,7 +80,7 @@ public struct Tensor<DataType> : TensorProtocol {
     /// Contiguous storage
     public internal(set) var units: ContiguousArray<UnitType>
 
-    /// Capacity reserved for sub-tensors
+    /// Capacity reserved for subtensors
     public var capacity: Int {
         return units.capacity / unitCountPerElement
     }
@@ -313,7 +313,7 @@ extension Tensor : RandomAccessCollection {
         }
     }
 
-    /// Access the sub-tensor specified by a contiguous range of indices
+    /// Access the subtensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar,

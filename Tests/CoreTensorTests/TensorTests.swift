@@ -77,17 +77,6 @@ class CoreTensorTests: XCTestCase {
         XCTAssertTrue(highScalar[0].shape ~ .scalar)
     }
 
-    func testTextOutput() {
-        let rank1: Tensor<Int> = Tensor(shape: [5], units: [1, 2, 3, 4, 5])
-        let rank2 = Tensor<Int>(shape: [2, 3], units: [1, 2, 3,
-                                                       4, 5, 6])
-        let rank3 = Tensor<Int>(shape: [2, 3, 2], units: [1, 2, 3, 4, 5, 6,
-                                                          7, 8, 9, 10, 11, 12])
-        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
-        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
-        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
-    }
-
     func testMutating() {
         var tensor = Tensor<Int>(shape: [5, 4, 3], repeating: 1)
         for i in 0..<tensor.units.count {
@@ -166,17 +155,26 @@ class CoreTensorTests: XCTestCase {
         XCTAssertEqual(Array(tensor.units), Array((-5..<10)) + Array(15..<60))
     }
 
+    func testTextOutput() {
+        let rank1 = Tensor<Int>(shape: [5], unitsIncreasingFrom: 1)
+        let rank2 = Tensor<Int>(shape: [2, 3], unitsIncreasingFrom: 1)
+        let rank3 = Tensor<Int>(shape: [2, 3, 2], unitsIncreasingFrom: 1)
+        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
+        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
+        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
+    }
+
     static var allTests: [(String, (CoreTensorTests) -> () throws -> Void)] {
         return [
             ("testIndexCalculation", testIndexCalculation),
             ("testAddressing", testAddressing),
             ("testInit", testInit),
-            ("testTextOutput", testTextOutput),
             ("testEquality", testEquality),
             ("testMutating", testMutating),
             ("testAssignment", testAssignment),
             ("testTranspose", testTranspose),
             ("testSlicing", testSlicing),
+            ("testTextOutput", testTextOutput),
         ]
     }
 

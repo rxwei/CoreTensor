@@ -127,6 +127,15 @@ class RankedTensorTests: XCTestCase {
         XCTAssertEqual(Array(tensor.units), Array((-5..<10)) + Array(15..<60))
     }
 
+    func testTextOutput() {
+        let rank1 = Tensor1D<Int>(shape: (5), unitsIncreasingFrom: 1)
+        let rank2 = Tensor2D<Int>(shape: (2, 3), unitsIncreasingFrom: 1)
+        let rank3 = Tensor3D<Int>(shape: (2, 3, 2), unitsIncreasingFrom: 1)
+        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
+        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
+        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
+    }
+
     static var allTests: [(String, (RankedTensorTests) -> () throws -> Void)] {
         return [
             ("testInit", testInit),
@@ -135,6 +144,7 @@ class RankedTensorTests: XCTestCase {
             ("testEquality", testEquality),
             ("testMutating", testMutating),
             ("testSlicing", testSlicing),
+            ("testTextOutput", testTextOutput),
         ]
     }
 

@@ -284,6 +284,47 @@ extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteg
 
 }
 
+
+public extension TensorSlice {
+
+    func makeUnitIterator() -> IndexingIterator<ArraySlice<UnitType>> {
+        return units.makeIterator()
+    }
+
+    mutating func updateUnit(at index: Int, to newValue: UnitType) {
+        base.updateUnit(at: index, to: newValue)
+    }
+
+}
+
+public extension TensorSlice where UnitType : Numeric {
+
+    mutating func incrementUnit(at index: Int, by newValue: UnitType) {
+        base.incrementUnit(at: index, by: newValue)
+    }
+
+    mutating func decrementUnit(at index: Int, by newValue: UnitType) {
+        base.decrementUnit(at: index, by: newValue)
+    }
+
+    mutating func multiplyUnit(at index: Int, by newValue: UnitType) {
+        base.multiplyUnit(at: index, by: newValue)
+    }
+
+}
+
+public extension TensorSlice where UnitType : BinaryInteger {
+    mutating func divideUnit(at index: Int, by newValue: UnitType) {
+        base.divideUnit(at: index, by: newValue)
+    }
+}
+
+public extension TensorSlice where UnitType : FloatingPoint {
+    mutating func divideUnit(at index: Int, by newValue: UnitType) {
+        base.divideUnit(at: index, by: newValue)
+    }
+}
+
 extension TensorSlice : RandomAccessCollection {
     public typealias Index = Int
     public typealias Element = TensorSlice<UnitType>
@@ -336,7 +377,7 @@ extension TensorSlice : RandomAccessCollection {
         }
     }
 
-    /// Access the sub-tensor specified by a contiguous range of indices
+    /// Access the subtensor specified by a contiguous range of indices
     public subscript(bounds: Range<Int>) -> SubSequence {
         get {
             precondition(!isScalar, "I am a scalar and I have no dimensions!")
