@@ -380,14 +380,6 @@ public extension RankedTensorSlice {
             try body(ptr)
         }
     }
-
-    mutating func withUnsafeMutableBufferPointer<Result>
-        (_ body: (inout UnsafeMutableBufferPointer<DataType>) throws -> Result) rethrows -> Result {
-        var units = self.units
-        return try units.withUnsafeMutableBufferPointer { ptr in
-            try body(&ptr)
-        }
-    }
 }
 
 extension RankedTensorSlice : TextOutputStreamable {

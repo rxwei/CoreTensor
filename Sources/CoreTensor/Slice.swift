@@ -416,14 +416,6 @@ public extension TensorSlice {
         }
     }
 
-    mutating func withUnsafeMutableBufferPointer<Result>
-        (_ body: (inout UnsafeMutableBufferPointer<UnitType>) throws -> Result) rethrows -> Result {
-        var units = self.units
-        return try units.withUnsafeMutableBufferPointer { ptr in
-            try body(&ptr)
-        }
-    }
-
 }
 
 extension TensorSlice : TextOutputStreamable {
