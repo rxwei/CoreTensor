@@ -2,7 +2,7 @@
 //  TensorTests.swift
 //  CoreTensor
 //
-//  Copyright 2016-2017 Richard Wei.
+//  Copyright 2016-2017 DLVM Team.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -51,15 +51,8 @@ class CoreTensorTests: XCTestCase {
         let highScalar = scalar.reshaped(as: [1, 1, 1])!
         XCTAssertTrue(highScalar.shape ~ .scalar)
 
-        var tensor = Tensor<Int>(elementShape: [4, 3])
-        tensor.append(contentsOf: Tensor<Int>(shape: [2, 4, 3],
-                                              unitsIncreasingFrom: 0))
-        tensor.append(contentsOf: Tensor<Int>(shape: [3, 4, 3],
-                                              unitsIncreasingFrom: 0))
-        XCTAssertEqual(tensor.units, ContiguousArray((0..<24).map{$0} + (0..<36).map{$0}))
-
         let scalars = Tensor<Int>(scalarElementsIn: 0..<10)
-        XCTAssertEqual(scalars.units, ContiguousArray((0..<10).map{$0}))
+        XCTAssertEqual(scalars.units, ContiguousArray((0..<10).map {$0}))
         for (i, scalar) in scalars.enumerated() {
             XCTAssertEqual(scalar.unitCount, 1)
             XCTAssertEqual(scalar.units.first, i)
@@ -84,24 +77,13 @@ class CoreTensorTests: XCTestCase {
         XCTAssertTrue(highScalar[0].shape ~ .scalar)
     }
 
-    func testTextOutput() {
-        let rank1: Tensor<Int> = Tensor(shape: [5], units: [1, 2, 3, 4, 5])
-        let rank2 = Tensor<Int>(shape: [2, 3], units: [1, 2, 3,
-                                                       4, 5, 6])
-        let rank3 = Tensor<Int>(shape: [2, 3, 2], units: [1, 2,  3, 4,   5, 6,
-                                                          7, 8,  9, 10,  11, 12])
-        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
-        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
-        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
-    }
-
     func testMutating() {
         var tensor = Tensor<Int>(shape: [5, 4, 3], repeating: 1)
         for i in 0..<tensor.units.count {
             tensor.multiplyUnit(at: i, by: i)
             tensor.incrementUnit(at: i, by: 1)
         }
-        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map{$0}))
+        XCTAssertEqual(tensor.units, ContiguousArray((1...60).map {$0}))
     }
 
     func testAssignment() {
@@ -123,16 +105,76 @@ class CoreTensorTests: XCTestCase {
         XCTAssertEqual(trans.units, [1, 4, 2, 5, 3, 6])
     }
 
-    static var allTests : [(String, (CoreTensorTests) -> () throws -> Void)] {
+    func testSlicing() {
+        var tensor = Tensor<Int>(shape: [3, 4, 5], unitsIncreasingFrom: 0)
+
+        /// Test shapes
+        XCTAssertEqual(tensor[0].shape, [4, 5])
+        XCTAssertEqual(tensor[0].elementShape, [5])
+        XCTAssertEqual(tensor[0][0].shape, [5])
+        XCTAssertEqual(tensor[0][0].elementShape, [])
+        XCTAssertEqual(tensor[0][0][0].shape, [])
+        XCTAssertEqual(tensor[0][0][0].elementShape, nil)
+        XCTAssertEqual(tensor[0..<2].shape, [2, 4, 5])
+        XCTAssertEqual(tensor[0..<2].elementShape, [4, 5])
+        XCTAssertEqual(tensor[0][0..<3].shape, [3, 5])
+        XCTAssertEqual(tensor[0][0..<3].elementShape, [5])
+
+        /// Test element tensor indexing
+        XCTAssertEqual(Array(tensor[0].units), Array(0..<20))
+        XCTAssertEqual(Array(tensor[2].units), Array(40..<60))
+        XCTAssertEqual(Array(tensor[0][0].units), Array(0..<5))
+        XCTAssertEqual(Array(tensor[1][3].units), Array(35..<40))
+        XCTAssertEqual(Array(tensor[2][0][3].units), [43])
+        XCTAssertEqual(Array(tensor[1][3][2].units), [37])
+
+        /// Test subtensor indexing
+        XCTAssertEqual(Array(tensor[2..<3].units), Array(40..<60))
+        XCTAssertEqual(Array(tensor[1][0..<2].units), Array(20..<30))
+        XCTAssertEqual(Array(tensor[2][1..<2].units), Array(45..<50))
+        XCTAssertEqual(Array(tensor[0][0][3..<5].units), Array(3..<5))
+
+        /// Test subtensor collection properties
+        XCTAssertTrue(tensor[0..<2].map {Array($0.units)}
+            .elementsEqual([Array(0..<20), Array(20..<40)], by: ==))
+        XCTAssertTrue(tensor[1][0..<2].map {Array($0.units)}
+            .elementsEqual([Array(20..<25), Array(25..<30)], by: ==))
+
+        /// Test subscript setters
+        tensor[0] = TensorSlice<Int>(shape: [4, 5], repeating: 1)
+        XCTAssertEqual(Array(tensor.units),
+                       Array(repeating: 1, count: 20) + Array(20..<60))
+        tensor[0..<2] = TensorSlice<Int>(shape: [2, 4, 5], unitsIncreasingFrom: 0)
+        XCTAssertEqual(Array(tensor.units), Array(0..<60))
+        tensor[0][1..<3] = TensorSlice<Int>(shape: [2, 5], unitsIncreasingFrom: 0)
+        XCTAssertEqual(Array(tensor.units),
+                       Array((0..<5)) + Array((0..<10)) + Array(15..<60))
+        for scalarIndex in tensor[0][0].indices {
+            tensor[0][0][scalarIndex] = TensorSlice<Int>(scalar: scalarIndex - 5)
+        }
+        XCTAssertEqual(Array(tensor.units), Array((-5..<10)) + Array(15..<60))
+    }
+
+    func testTextOutput() {
+        let rank1 = Tensor<Int>(shape: [5], unitsIncreasingFrom: 1)
+        let rank2 = Tensor<Int>(shape: [2, 3], unitsIncreasingFrom: 1)
+        let rank3 = Tensor<Int>(shape: [2, 3, 2], unitsIncreasingFrom: 1)
+        XCTAssertEqual("\(rank1)", "[1, 2, 3, 4, 5]")
+        XCTAssertEqual("\(rank2)", "[[1, 2, 3], [4, 5, 6]]")
+        XCTAssertEqual("\(rank3)", "[[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]]")
+    }
+
+    static var allTests: [(String, (CoreTensorTests) -> () throws -> Void)] {
         return [
             ("testIndexCalculation", testIndexCalculation),
             ("testAddressing", testAddressing),
             ("testInit", testInit),
-            ("testTextOutput", testTextOutput),
             ("testEquality", testEquality),
             ("testMutating", testMutating),
             ("testAssignment", testAssignment),
             ("testTranspose", testTranspose),
+            ("testSlicing", testSlicing),
+            ("testTextOutput", testTextOutput),
         ]
     }
 

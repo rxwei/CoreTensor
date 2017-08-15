@@ -18,7 +18,7 @@
 //
 
 /// Tensor shape
-public struct TensorShape : ExpressibleByArrayLiteral {
+public struct TensorShape: ExpressibleByArrayLiteral {
 
     public typealias SubSequence = TensorShape
 
@@ -336,9 +336,7 @@ public extension TensorShape {
         /// For each pair of corresponding dimensions `l` and `r`, it must either
         /// be the case that `l` is equal to `r`, or that either of the two is 1.
         for (l, r) in zip(self, other) {
-            if l == 1 || l == r { shape.dimensions.append(r) }
-            else if r == 1 { shape.dimensions.append(l) }
-            else { return nil }
+            if l == 1 || l == r { shape.dimensions.append(r) } else if r == 1 { shape.dimensions.append(l) } else { return nil }
         }
         return shape
     }

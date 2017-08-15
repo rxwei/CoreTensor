@@ -18,7 +18,7 @@
 //
 
 /// Tensor index
-public struct TensorIndex : ExpressibleByArrayLiteral {
+public struct TensorIndex: ExpressibleByArrayLiteral {
     var elements: [Int]
 
     public init(arrayLiteral elements: Int...) {
