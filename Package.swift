@@ -22,6 +22,12 @@ import PackageDescription
 
 let package = Package(
     name: "CoreTensor",
+    products: [
+        .library(name: "CoreTensor", type: .static,
+                 targets: ["CoreTensor"]),
+        .library(name: "RankedTensor", type: .static,
+                 targets: ["RankedTensor"]),
+    ],
     targets: [
         .target(name: "CoreTensor"),
         .target(name: "RankedTensor", dependencies: ["CoreTensor"]),
