@@ -210,8 +210,7 @@ public extension TensorSlice {
     /// - parameter vacancySupplier
     public init<S: Sequence>(shape: TensorShape, units: S,
                              vacancySupplier supplier: (() -> UnitType)? = nil)
-        where S.Iterator.Element == UnitType, S.SubSequence : Sequence,
-        S.SubSequence.Iterator.Element == UnitType {
+        where S.Iterator.Element == UnitType {
             let contiguousSize = shape.contiguousSize
             var slice = ContiguousArray(units.prefix(contiguousSize))
             /// If elements fewer than required by the shape and supplier is provided
