@@ -165,13 +165,11 @@ public struct Tensor<DataType> : TensorProtocol {
     public init(_ slice: TensorSlice<UnitType>) {
         self.init(elementShape: slice.elementShape, units: ContiguousArray(slice.units))
     }
-
 }
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
 
 public extension Tensor where UnitType : Equatable {
-
     public static func ==(lhs: Tensor<UnitType>, rhs: Tensor<UnitType>) -> Bool {
         return lhs.elementsEqual(rhs)
     }
@@ -184,11 +182,9 @@ public extension Tensor where UnitType : Equatable {
     public func unitsEqual(_ other: Tensor<UnitType>) -> Bool {
         return units.elementsEqual(other.units)
     }
-
 }
 
 public extension TensorProtocol {
-
     public func isSimilar(to other: Self) -> Bool {
         return shape ~ other.shape
     }
@@ -196,11 +192,9 @@ public extension TensorProtocol {
     public func isIsomorphic(to other: Self) -> Bool {
         return shape == other.shape
     }
-
 }
 
 extension Tensor where UnitType : Strideable {
-
     public init(shape: TensorShape, unitsIncreasingFrom lowerBound: UnitType) {
         var unit = lowerBound
         self.init(shape: shape, supplier: {
@@ -208,11 +202,9 @@ extension Tensor where UnitType : Strideable {
             return unit
         })
     }
-
 }
 
 extension Tensor where UnitType : Strideable, UnitType.Stride : SignedInteger {
-
     public init(scalarElementsIn bounds: CountableRange<UnitType>) {
         self.init(elementShape: .scalar, units: ContiguousArray(bounds))
     }
@@ -220,11 +212,9 @@ extension Tensor where UnitType : Strideable, UnitType.Stride : SignedInteger {
     public init(scalarElementsIn bounds: CountableClosedRange<UnitType>) {
         self.init(elementShape: .scalar, units: ContiguousArray(bounds))
     }
-
 }
 
 public extension Tensor {
-
     func makeUnitIterator() -> IndexingIterator<ContiguousArray<UnitType>> {
         return units.makeIterator()
     }
@@ -232,11 +222,9 @@ public extension Tensor {
     mutating func updateUnit(at index: Int, to newValue: UnitType) {
         units[units.startIndex.advanced(by: index)] = newValue
     }
-
 }
 
 public extension Tensor where UnitType : Numeric {
-
     mutating func incrementUnit(at index: Int, by newValue: UnitType) {
         units[units.startIndex.advanced(by: index)] += newValue
     }
@@ -248,7 +236,6 @@ public extension Tensor where UnitType : Numeric {
     mutating func multiplyUnit(at index: Int, by newValue: UnitType) {
         units[units.startIndex.advanced(by: index)] *= newValue
     }
-
 }
 
 public extension Tensor where UnitType : BinaryInteger {
@@ -359,22 +346,18 @@ extension Tensor : RandomAccessCollection {
     public func index(before i: Int) -> Int {
         return i - 1
     }
-
 }
 
 public extension Tensor {
-
     public func reshaped(as newShape: TensorShape) -> Tensor? {
         guard self.shape.contiguousSize == newShape.contiguousSize else {
             return nil
         }
         return Tensor(shape: newShape, units: units)
     }
-
 }
 
 public extension Tensor {
-
     func withUnsafeBufferPointer<Result>
         (_ body: (UnsafeBufferPointer<UnitType>) throws -> Result) rethrows -> Result {
         return try units.withUnsafeBufferPointer { ptr in
@@ -388,15 +371,12 @@ public extension Tensor {
             try body(&ptr)
         }
     }
-
 }
 
 extension Tensor : TextOutputStreamable {
     public func write<Target>(to target: inout Target) where Target : TextOutputStream {
-        target.write(
-            isScalar ?
-                String(describing: units[0])
-                     : "[\(map {"\($0)"}.joined(separator: ", "))]"
-        )
+        target.write(isScalar
+            ? String(describing: units[0])
+            : "[\(map {"\($0)"}.joined(separator: ", "))]")
     }
 }
