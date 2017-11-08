@@ -19,8 +19,8 @@ Each `Tensor<T>` stores a `TensorShape`, which wraps an array of integers repres
 shape of the tensor.
 
 - *RankedTensor* implements dynamically shaped but *statically ranked* tensors. Instead of
-storing `TensorShape` which wraps a dynamically sized array, *RankedTensor* requires a tuple of
-integers representing a shape with known rank. Types `T`, `Tensor1D<T>`, `Tensor2D<T>`, `Tensor3D<T>`, and 
+storing `TensorShape` (which wraps a dynamically sized array), *RankedTensor* uses a tuple of
+integers to represent a shape with known rank. Types `T`, `Tensor1D<T>`, `Tensor2D<T>`, `Tensor3D<T>`, and 
 `Tensor4D<T>` represent scalars, vectors, matrices, rank-3 tensors, and rank-4 tensors, respectively.
 
 ## License
