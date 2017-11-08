@@ -1,8 +1,15 @@
-# Project CoreTensor
+# CoreTensor
 
-**CoreTensor** is a sub-project of the DLVM project, providing *DLVM Core* and *NNKit*
-with a library for tensor shaping, storage, indexing, slicing, linear algebra shape
-transformation and collection behavior.
+**CoreTensor** is a tensor library and a sub-project of the DLVM project.
+
+It provides:
+- Shaping
+- Storage
+- Indexing
+- Slicing
+- Linear algebra shape transformations
+- Broadcasting
+- Collection behavior
 
 ## Libraries
 
