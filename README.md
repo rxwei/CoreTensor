@@ -1,6 +1,6 @@
 # CoreTensor
 
-**CoreTensor** is a tensor library and a sub-project of the DLVM project.
+CoreTensor is a tensor library and a sub-project of the DLVM project.
 
 It provides:
 - Shaping
@@ -11,7 +11,7 @@ It provides:
 - Broadcasting
 - Collection behavior
 
-## Libraries
+## Modules
 
 - *CoreTensor* implements completely dynamically shaped tensors. Scalars, vectors, matrices
 and n-D arrays are all represented as `Tensor<T>`, where `T` represents the type of each unit.
