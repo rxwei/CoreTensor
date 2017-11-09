@@ -54,7 +54,6 @@ public struct TensorIndex: ExpressibleByArrayLiteral {
 
 // MARK: - Equatable, Comparable
 extension TensorIndex : Comparable {
-
     public static func ==(lhs: TensorIndex, rhs: TensorIndex) -> Bool {
         return lhs.elements == rhs.elements
     }
@@ -69,12 +68,10 @@ extension TensorIndex : Comparable {
         }
         return false
     }
-
 }
 
 // MARK: - RandomAccessCollection
 extension TensorIndex : RandomAccessCollection {
-
     public var count: Int {
         return elements.count
     }
@@ -122,12 +119,10 @@ extension TensorIndex : RandomAccessCollection {
             elements[i] = newValue
         }
     }
-
 }
 
 // MARK: - Strideable
 extension TensorIndex : Strideable {
-
     public typealias Stride = Int
 
     /// Returns a `Self` `x` such that `self.distance(to: x)` approximates `n`.
@@ -153,11 +148,9 @@ extension TensorIndex : Strideable {
         guard let otherLast = other.last, let selfLast = last else { return 0 }
         return otherLast - selfLast
     }
-
 }
 
 public extension TensorShape {
-
     /// Returns the row-major order index for the specified tensor index
     /// - parameter index: tensor index
     func contiguousIndex(for index: TensorIndex) -> Int {
@@ -171,5 +164,4 @@ public extension TensorShape {
         }
         return dropFirst(index.count)
     }
-
 }

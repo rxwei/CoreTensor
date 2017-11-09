@@ -95,7 +95,6 @@ public extension TensorSlice {
 }
 
 public extension TensorSlice {
-
     init(base: Tensor<UnitType>, bounds: CountableRange<Int>?) {
         if let bounds = bounds {
             precondition(base.indices ~= bounds.startIndex
@@ -237,13 +236,11 @@ public extension TensorSlice {
         let units = ContiguousArray((0..<shape.contiguousSize).map { _ in supplier() })
         self.init(shape: shape, units: units)
     }
-
 }
 
 /// - TODO: Add conditional expressibility conformance in Swift 4
 
 public extension TensorSlice where UnitType : Equatable {
-
     public static func ==(lhs: TensorSlice<UnitType>, rhs: TensorSlice<UnitType>) -> Bool {
         return lhs.elementsEqual(rhs)
     }
@@ -256,11 +253,9 @@ public extension TensorSlice where UnitType : Equatable {
     public func unitsEqual(_ other: TensorSlice<UnitType>) -> Bool {
         return units.elementsEqual(other.units)
     }
-
 }
 
 extension TensorSlice where UnitType : Strideable {
-
     public init(shape: TensorShape, unitsIncreasingFrom lowerBound: UnitType) {
         var unit = lowerBound
         self.init(shape: shape, supplier: {
@@ -268,11 +263,9 @@ extension TensorSlice where UnitType : Strideable {
             return unit
         })
     }
-
 }
 
 extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteger {
-
     public init(scalarElementsIn bounds: CountableRange<UnitType>) {
         self.init(elementShape: .scalar, units: ContiguousArray(bounds))
     }
@@ -280,11 +273,9 @@ extension TensorSlice where UnitType : Strideable, UnitType.Stride : SignedInteg
     public init(scalarElementsIn bounds: CountableClosedRange<UnitType>) {
         self.init(elementShape: .scalar, units: ContiguousArray(bounds))
     }
-
 }
 
 public extension TensorSlice {
-
     func makeUnitIterator() -> IndexingIterator<ArraySlice<UnitType>> {
         return units.makeIterator()
     }
@@ -292,11 +283,9 @@ public extension TensorSlice {
     mutating func updateUnit(at index: Int, to newValue: UnitType) {
         base.updateUnit(at: index, to: newValue)
     }
-
 }
 
 public extension TensorSlice where UnitType : Numeric {
-
     mutating func incrementUnit(at index: Int, by newValue: UnitType) {
         base.incrementUnit(at: index, by: newValue)
     }
@@ -308,7 +297,6 @@ public extension TensorSlice where UnitType : Numeric {
     mutating func multiplyUnit(at index: Int, by newValue: UnitType) {
         base.multiplyUnit(at: index, by: newValue)
     }
-
 }
 
 public extension TensorSlice where UnitType : BinaryInteger {
@@ -396,25 +384,21 @@ extension TensorSlice : RandomAccessCollection {
 }
 
 public extension TensorSlice {
-
     public func reshaped(as newShape: TensorShape) -> Tensor<UnitType>? {
         guard self.shape.contiguousSize == newShape.contiguousSize else {
             return nil
         }
         return Tensor(shape: newShape, units: units)
     }
-
 }
 
 public extension TensorSlice {
-
     func withUnsafeBufferPointer<Result>
         (_ body: (UnsafeBufferPointer<UnitType>) throws -> Result) rethrows -> Result {
         return try units.withUnsafeBufferPointer { ptr in
             try body(ptr)
         }
     }
-
 }
 
 extension TensorSlice : TextOutputStreamable {

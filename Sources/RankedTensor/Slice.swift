@@ -23,7 +23,6 @@ import struct CoreTensor.TensorSlice
 
 /// Ranked tensor slice
 public struct RankedTensorSlice<R: StaticRank> {
-
     public typealias DataType = R.DataType
     public typealias Shape = R.Shape
     public typealias ElementTensor = R.ElementTensor
@@ -66,11 +65,9 @@ public struct RankedTensorSlice<R: StaticRank> {
     public var capacity: Int {
         return units.capacity / unitCountPerElement
     }
-
 }
 
 public extension RankedTensorSlice {
-
     /// Indexing depth of this slice, i.e. the rank difference between the base
     /// and the slice
     private var indexingDepth: Int {
@@ -187,7 +184,6 @@ public extension RankedTensorSlice {
         let units = ContiguousArray((0..<contiguousSize).map { _ in supplier() })
         self.init(shape: shape, units: units)
     }
-
 }
 
 public extension RankedTensorSlice {

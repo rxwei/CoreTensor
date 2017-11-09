@@ -19,7 +19,6 @@
 
 /// Tensor shape
 public struct TensorShape: ExpressibleByArrayLiteral {
-
     public typealias SubSequence = TensorShape
 
     /// NOTE: Temporarily changed access from fileprivate to public for use
@@ -56,7 +55,6 @@ public struct TensorShape: ExpressibleByArrayLiteral {
     public var contiguousSize: Int {
         return simplified().reduce(1, *)
     }
-
 }
 
 // MARK: - Factories
@@ -91,7 +89,6 @@ public extension TensorShape {
 
 // MARK: - RandomAccessCollection
 extension TensorShape : RandomAccessCollection {
-
     /// Subshape indexing
     public subscript(bounds: Range<Int>) -> TensorShape {
         get {
@@ -132,7 +129,6 @@ extension TensorShape : RandomAccessCollection {
             dimensions[i] = newValue
         }
     }
-
 }
 
 /// Similarity operators
@@ -224,7 +220,6 @@ infix operator • : MultiplicationPrecedence
 
 // MARK: - Transformations
 public extension TensorShape {
-
     /// Prepending a dimension
     func prepending(_ dimensionSize: Int) -> TensorShape {
         return TensorShape([dimensionSize] + dimensions)

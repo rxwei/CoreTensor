@@ -18,7 +18,7 @@
 //
 
 public protocol TensorProtocol: RandomAccessCollection
-    where IndexDistance == Int, Index == Int {
+    where IndexDistance == Int, Index == Int, Element: TensorProtocol {
     associatedtype UnitType
     associatedtype UnitSequenceType: RandomAccessCollection
         where UnitSequenceType.Iterator.Element == UnitType,
