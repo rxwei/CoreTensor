@@ -17,8 +17,9 @@
 //  limitations under the License.
 //
 
-public protocol TensorProtocol: RandomAccessCollection
-    where IndexDistance == Int, Index == Int, Element: TensorProtocol {
+public protocol TensorProtocol: RandomAccessCollection where
+    IndexDistance == Int, Index == Int,
+Element: TensorProtocol, Element.UnitType == UnitType {
     associatedtype UnitType
     associatedtype UnitSequenceType: RandomAccessCollection
         where UnitSequenceType.Iterator.Element == UnitType,
